@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.gridspec as gridspec
 
 def normalize(v):
   norm = np.linalg.norm(v)
@@ -97,6 +100,16 @@ class Trajectory:
     data = np.loadtxt(filename, delimiter=",", skiprows=1, usecols=range(33))
     self.polynomials = [Polynomial4D(row[0], row[1:9], row[9:17], row[17:25], row[25:33]) for row in data]
     self.duration = np.sum(data[:,0])
+  
+  def savecsv(self, filename):
+    data = np.empty((len(self.polynomials), 8*4+1))
+    for i, p in enumerate(self.polynomials):
+      data[i,0] = p.duration
+      data[i,1:9] = p.px.p
+      data[i,9:17] = p.py.p
+      data[i,17:25] = p.pz.p
+      data[i,25:33] = p.pyaw.p
+    np.savetxt(filename, data, fmt="%.6f", delimiter=",", header="duration,x^0,x^1,x^2,x^3,x^4,x^5,x^6,x^7,y^0,y^1,y^2,y^3,y^4,y^5,y^6,y^7,z^0,z^1,z^2,z^3,z^4,z^5,z^6,z^7,yaw^0,yaw^1,yaw^2,yaw^3,yaw^4,yaw^5,yaw^6,yaw^7")
 
   def eval(self, t):
     assert t >= 0
@@ -107,3 +120,52 @@ class Trajectory:
       if t <= current_t + p.duration:
         return p.eval(t - current_t)
       current_t = current_t + p.duration
+  
+  def plot(self):
+    ts = np.arange(0, self.duration, 0.01)
+    evals = np.empty((len(ts), 15))
+    for t, i in zip(ts, range(0, len(ts))):
+        e = self.eval(t)
+        evals[i, 0:3] = e.pos
+        evals[i, 3:6] = e.vel
+        evals[i, 6:9] = e.acc
+        evals[i, 9:12] = e.omega
+        evals[i, 12] = e.yaw
+        # evals[i, 13]   = e.roll
+        # evals[i, 14]   = e.pitch
+
+    velocity = np.linalg.norm(evals[:, 3:6], axis=1)
+    acceleration = np.linalg.norm(evals[:, 6:9], axis=1)
+    omega = np.linalg.norm(evals[:, 9:12], axis=1)
+
+    # print stats
+    print("max speed (m/s): ", np.max(velocity))
+    print("max acceleration (m/s^2): ", np.max(acceleration))
+    print("max omega (rad/s): ", np.max(omega))
+    print("max roll (deg): ", np.max(np.degrees(evals[:, 13])))
+    print("max pitch (deg): ", np.max(np.degrees(evals[:, 14])))
+
+    # Create 3x1 sub plots
+    gs = gridspec.GridSpec(6, 1)
+    fig = plt.figure()
+
+    ax = plt.subplot(gs[0:2, 0], projection='3d')  # row 0
+    ax.plot(evals[:, 0], evals[:, 1], evals[:, 2])
+
+    ax = plt.subplot(gs[2, 0])  # row 2
+    ax.plot(ts, velocity)
+    ax.set_ylabel("velocity [m/s]")
+
+    ax = plt.subplot(gs[3, 0])  # row 3
+    ax.plot(ts, acceleration)
+    ax.set_ylabel("acceleration [m/s^2]")
+
+    ax = plt.subplot(gs[4, 0])  # row 4
+    ax.plot(ts, omega)
+    ax.set_ylabel("omega [rad/s]")
+
+    ax = plt.subplot(gs[5, 0])  # row 5
+    ax.plot(ts, np.degrees(evals[:, 12]))
+    ax.set_ylabel("yaw [deg]")
+
+    plt.show()
