@@ -16,6 +16,8 @@ TIMESTEP = 1/100
 DURATION = 30.0
 SPEED = np.abs(X_MAX - X_MIN) / DURATION
 
+np.random.seed(42)
+
 def main():
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
@@ -30,6 +32,12 @@ def main():
     fx = lambda t: DIRECTION * t * SPEED + x_offset
     fy = lambda t: 0.5*np.sin(t)
     fz = lambda t: 0.5*np.cos(t) + 1.25
+    
+    sorted_cfs = reversed(sorted([(cf.initialPosition[0], np.random.uniform(), cf) for cf in allcfs.crazyflies]))
+    cfs = []
+    for p, r, cf in sorted_cfs:
+        cfs.append(cf)
+    allcfs.crazyflies = cfs
 
     period_offset = np.linspace(0, 2*np.pi, len(allcfs.crazyflies), endpoint=False)
     starting_positions = [(fx(0), fy(offset), fz(offset), 0) for offset in period_offset]
@@ -38,8 +46,8 @@ def main():
     timeHelper.sleep(4.0)
 
     for cf, pos in zip(allcfs.crazyflies, starting_positions):
-        cf.goTo(pos, 0, 4.0)
-        timeHelper.sleep(3.0)
+        cf.goTo(pos, 0, 5.0)
+        timeHelper.sleep(2.0)
     
     timeHelper.sleep(4.0)
 
@@ -63,7 +71,7 @@ def main():
               pos = (fx(DURATION), fy(DURATION+period_offset[i]), fz(DURATION+period_offset[i]))
            else:
               end_pos = (fx(DURATION), fy(DURATION+period_offset[i]), fz(DURATION+period_offset[i]))
-              init_pos = np.array(cf.initialPosition) + np.array([0, 0, 1.0 + i*0.5])
+              init_pos = np.array(cf.initialPosition) + np.array([0, 0, 1.0])
               pos = (1 - t/ 7.5) * np.array(end_pos) + (t / 7.5) * np.array(init_pos)
            cf.cmdPosition(pos)
        t += TIMESTEP
@@ -72,7 +80,7 @@ def main():
     t = 0
     while t <= 3.0:
         for i, cf in enumerate(allcfs.crazyflies):
-            end_pos = np.array(cf.initialPosition) + np.array([0, 0, 1.0 + i*0.5])
+            end_pos = np.array(cf.initialPosition) + np.array([0, 0, 1.0])
             init_pos = np.array(cf.initialPosition)
             pos = (1-t/3.0) * end_pos + (t/3.0) * init_pos
             cf.cmdPosition(pos)
