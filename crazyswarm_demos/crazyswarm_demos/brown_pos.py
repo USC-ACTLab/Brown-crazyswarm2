@@ -85,8 +85,10 @@ def main():
     # check_points(POS_B)
     scaled_r = to_3d(POS_R)
     scaled_o = to_3d(POS_O)
+    scaled_o[:, 0] += 1.0 
     scaled_w = to_3d(POS_W)
     scaled_w[-1][1] += 1
+    scaled_w[-1][0] += 0.1
     scaled_n = to_3d(POS_N)
     
 
@@ -111,6 +113,11 @@ def main():
     dists_w_n = distance_matrix(scaled_w, scaled_n)
     scaled_n = scaled_n[linear_sum_assignment(dists_w_n)[1]]
 
+    print(scaled_b[:, 2].max())
+    print(scaled_r[:, 2].max())
+    print(scaled_o[:, 2].max())
+    print(scaled_w[:, 2].max())
+    print(scaled_n[:, 2].max())
 
     print("get in position!")
     cfs.takeoff(1., duration=2.5)
@@ -141,13 +148,13 @@ def main():
     timeHelper.sleep(DURATION+HOVER_DURATION)
 
     # Land... Turns out to be a bit tricky...
-    for cf in cfs.crazyflies:
+    for i, (cf, last_pos) in enumerate(zip(cfs.crazyflies, scaled_n)):
         init_p = np.array(cf.initialPosition)
-        cf.goTo(init_p + np.array([0., 0., 1.]), yaw=0, duration=DURATION)
+        cf.goTo(init_p + np.array([0., 0., scaled_n[i, 2]]), yaw=0, duration=DURATION)
     print("returning to init positions")
     timeHelper.sleep(DURATION)
     print("Landing")
-    cfs.land(0.04, duration=2)
+    cfs.land(0.04, duration=5.0)
 
 if __name__ == '__main__':
     main()

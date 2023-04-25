@@ -1,3 +1,6 @@
+#
+
+
 from crazyflie_py import Crazyswarm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +15,7 @@ X_MIN = -8.0
 X_MAX = 2.0
 DIRECTION = -1
 TIMESTEP = 1/100
-
+RADIUS = 0.5
 DURATION = 30.0
 SPEED = np.abs(X_MAX - X_MIN) / DURATION
 
@@ -28,23 +31,26 @@ def main():
     else:
         x_offset = X_MIN
 
-
+    # Helix moving from positive x to negative x
     fx = lambda t: DIRECTION * t * SPEED + x_offset
-    fy = lambda t: 0.5*np.sin(t)
-    fz = lambda t: 0.5*np.cos(t) + 1.25
-    
+    fy = lambda t: RADIUS*np.sin(t)
+    fz = lambda t: RADIUS*np.cos(t) + 1.25
+
+    # Sort CFs by decreasing X coordinate, ties are broken with a random number 
     sorted_cfs = reversed(sorted([(cf.initialPosition[0], np.random.uniform(), cf) for cf in allcfs.crazyflies]))
     cfs = []
     for p, r, cf in sorted_cfs:
         cfs.append(cf)
     allcfs.crazyflies = cfs
-
+    
+    # Evenly space crazyflies around the circle, if many crazyflies are used, an x offset might be necessary
     period_offset = np.linspace(0, 2*np.pi, len(allcfs.crazyflies), endpoint=False)
     starting_positions = [(fx(0), fy(offset), fz(offset), 0) for offset in period_offset]
 
     allcfs.takeoff(targetHeight=1., duration=2.)
     timeHelper.sleep(4.0)
 
+    # Send CFs one by one to the starting positions on the circle
     for cf, pos in zip(allcfs.crazyflies, starting_positions):
         cf.goTo(pos, 0, 5.0)
         timeHelper.sleep(2.0)
