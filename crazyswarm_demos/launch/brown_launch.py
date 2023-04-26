@@ -12,7 +12,7 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 def generate_launch_description():
     # load crazyflies
     crazyflies_yaml = os.path.join(
-        get_package_share_directory('crazyflie'),
+        get_package_share_directory('crazyswarm_demos'),
         'config',
         'brown.yaml')
 
