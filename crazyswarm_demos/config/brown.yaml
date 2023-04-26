@@ -6,12 +6,12 @@ robots:
     enabled: true
     uri: radio://1/120/2M/E7E7E7E71C
     initial_position: [1.5, 0, 0]
-    type: cf21_m4  # see robot_types
-  cf8:
-    enabled: true
-    uri: radio://1/120/2M/E7E7E7E708
-    initial_position: [0.5, 0.5, 0]
-    type: cf21_m3  # see robot_types
+    type: cf21_m2  # see robot_types
+  #cf8:
+  #  enabled: true
+  #  uri: radio://1/120/2M/E7E7E7E708
+  #  initial_position: [0.5, 0.5, 0]
+  #  type: cf21_m3  # see robot_types
   cf34:
     enabled: true
     uri: radio://1/120/2M/E7E7E7E722
@@ -88,11 +88,11 @@ robots:
     uri: radio://0/100/2M/E7E7E7E705
     initial_position: [1.0, -0.5, 0]
     type: cf21_m1  # see robot_types
-  # cf43:
-  #   enabled: false
-  #   uri: radio://0/100/2M/E7E7E7E7B
-  #   initial_position: [-0.5, 1, 0]
-  #   type: cf21_m3
+  cf43:
+    enabled: true
+    uri: radio://0/100/2M/E7E7E7E7B
+    initial_position: [0.5, 0.5, 0]
+    type: cf21_m3
   # cf33:
   #   enabled: false
   #   uri: radio://1/120/2M/E7E7E7E721
