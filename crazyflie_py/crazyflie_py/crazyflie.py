@@ -616,28 +616,28 @@ class Crazyflie:
         self.cmdPositionMsg.yaw = yaw
         self.cmdPositionPublisher.publish(self.cmdPositionMsg)
 
-    # def setLEDColor(self, r, g, b):
-    #     """Sets the color of the LED ring deck.
+    def setLEDColor(self, r, g, b):
+        """Sets the color of the LED ring deck.
 
-    #     While most params (such as PID gains) only need to be set once, it is
-    #     common to change the LED ring color many times during a flight, e.g.
-    #     as some kind of status indicator. This method makes it convenient.
+        While most params (such as PID gains) only need to be set once, it is
+        common to change the LED ring color many times during a flight, e.g.
+        as some kind of status indicator. This method makes it convenient.
 
-    #     PRECONDITION: The param "ring/effect" must be set to 7 (solid color)
-    #     for this command to have any effect. The default mode uses the ring
-    #     color to indicate radio connection quality.
+        PRECONDITION: The param "ring/effect" must be set to 7 (solid color)
+        for this command to have any effect. The default mode uses the ring
+        color to indicate radio connection quality.
 
-    #     This is a blocking command, so it may cause stability problems for
-    #     large swarms and/or high-frequency changes.
+        This is a blocking command, so it may cause stability problems for
+        large swarms and/or high-frequency changes.
 
-    #     Args:
-    #         r (float): Red component of color, in range [0, 1].
-    #         g (float): Green component of color, in range [0, 1].
-    #         b (float): Blue component of color, in range [0, 1].
-    #     """
-    #     self.setParam("ring/solidRed", int(r * 255))
-    #     self.setParam("ring/solidGreen", int(g * 255))
-    #     self.setParam("ring/solidBlue", int(b * 255))
+        Args:
+            r (float): Red component of color, in range [0, 1].
+            g (float): Green component of color, in range [0, 1].
+            b (float): Blue component of color, in range [0, 1].
+        """
+        self.setParam("ring.solidRed", int(r * 255))
+        self.setParam("ring.solidGreen", int(g * 255))
+        self.setParam("ring.solidBlue", int(b * 255))
 
 
 class CrazyflieServer(rclpy.node.Node):

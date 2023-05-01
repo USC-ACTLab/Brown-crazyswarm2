@@ -755,6 +755,7 @@ public:
         // if it is a Crazyflie, try to connect
         if (constr == "crazyflie") {
           std::string uri = parameter_overrides.at("robots." + name + ".uri").get<std::string>();
+	  RCLCPP_INFO(logger_, "Trying to connect to %s", uri.c_str());
           crazyflies_.emplace(name, std::make_unique<CrazyflieROS>(uri, cf_type, name, this));
 
           auto broadcastUri = crazyflies_[name]->broadcastUri();

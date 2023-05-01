@@ -48,8 +48,8 @@ POS_N = np.array([[0.,   0.  ],
 Z_MAX = 2.5
 X_MAX = 2
 
-DURATION = 10.0
-HOVER_DURATION = 5.0
+DURATION = 5.0
+HOVER_DURATION = 2.0
 
 def check_points(pos):
     plt.scatter(pos[:, 0], pos[:, 1])
