@@ -78,7 +78,7 @@ robots:
     initial_position: [0, 0.5, 0]
     type: cf21_m3  # see robot_types
   cf28:
-    enabled: true
+    enabled: false
     uri: radio://1/120/2M/E7E7E7E71C
     initial_position: [0.5, 0.5, 0]
     type: cf21_m4  # see robot_types
@@ -277,7 +277,7 @@ all:
       estimator: 2 # 1: complementary, 2: kalman
       controller: 1 # 1: PID, 2: mellinger
     ring:
-      effect: 16  # 6: double spinner, 7: solid color, 16: packetRate
+      effect: 7  # 6: double spinner, 7: solid color, 16: packetRate
       solidBlue: 255  # if set to solid color
       solidGreen: 0  # if set to solid color
       solidRed: 0  # if set to solid color
@@ -291,3 +291,6 @@ all:
   broadcasts:
     num_repeats: 15 # number of times broadcast commands are repeated
     delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats
+  
+  unicasts:
+    num_repeats: 2
