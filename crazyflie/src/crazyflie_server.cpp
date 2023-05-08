@@ -251,12 +251,14 @@ public:
       auto end1 = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedSeconds1 = end1 - start;
       RCLCPP_INFO(logger_, "reqParamTOC: %f s (%d params)", elapsedSeconds1.count(), numParams);
-      
+      RCLCPP_INFO(logger_, "Unicasts %i",  unicasts_num_repeats_);
       // Set parameters as specified in the configuration files, as in the following order
       // 1.) check all/firmware_params
       // 2.) check robot_types/<type_name>/firmware_params
       // 3.) check robots/<robot_name>/firmware_params
       // where the higher order is used if defined on multiple levels.
+
+      unicasts_num_repeats_ = 2;
 
       // <group>.<name> -> value map
       std::map<std::string, rclcpp::ParameterValue> set_param_map;
@@ -273,7 +275,6 @@ public:
         std::string paramName = name + ".params." + std::regex_replace(i.first, std::regex("\\."), ".");
         change_parameter(rclcpp::Parameter(paramName, i.second));
       }
-      unicasts_num_repeats_ = node->get_parameter("all.unicasts.num_repeats").get_parameter_value().get<int>();
     }
     
 
@@ -394,7 +395,8 @@ public:
 
   void change_parameter(const rclcpp::Parameter& p)
   {
-    for(size_t i = 0; i < this->unicasts_num_repeats_; ++i)
+    unicasts_num_repeats_= 2;
+    for (size_t i = 0; i < unicasts_num_repeats_; ++i)
     {
       change_parameter_(p);
     }
@@ -600,7 +602,7 @@ private:
   void upload_trajectory(const std::shared_ptr<UploadTrajectory::Request> request,
                         std::shared_ptr<UploadTrajectory::Response> response)
   {
-    for(size_t i = 0; i < this->unicasts_num_repeats_; ++i)
+    for (size_t i = 0; i < this->unicasts_num_repeats_; ++i)
     {
       upload_trajectory_(request, response);
     }
@@ -804,7 +806,7 @@ public:
 
     // declare global params
     this->declare_parameter("all.broadcasts.num_repeats", 15);
-    this->declare_parameter("all.unicasts.num_repeats", 2);
+    this->declare_parameter("all.unicasts.num_repeats", 1);
     this->declare_parameter("all.broadcasts.delay_between_repeats_ms", 1);
     this->declare_parameter("firmware_params.query_all_values_on_connect", false);
 
