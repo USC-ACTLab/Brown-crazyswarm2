@@ -19,15 +19,15 @@ POS_W = np.array([[0.,     1.    ],
  [0.8,    1.    ],
  [0.2,    0.    ],
  [0.6,    0.    ],
- [0.05, 0.75  ],
- [0.1, 0.5  ],
- [0.15, 0.25  ],
- [0.3,  0.5  ],
- [0.49, 0.5  ],
- [0.65,  0.25  ],
- [0.7,  0.5],
- [0.746, 0.75],
- [0.746, 0.75]]
+ [0.0666, 0.66  ],
+ [0.1333, 0.33  ],
+ [0.266,  0.33  ],
+ [0.333, 0.66],
+ [0.466, 0.66],
+ [0.533, 0.33],
+ [0.666, 0.33],
+ [0.733, 0.66],
+ [0.733, 0.66]]
 )
 
 POS_N = np.array([[0.,   0.  ],
@@ -45,10 +45,10 @@ POS_N = np.array([[0.,   0.  ],
  [0.3,  0.4 ],
  [0.4,  0.2 ]])
 
-Z_MAX = 2.5
+Z_MAX = 2.25
 X_MAX = 2
 
-DURATION = 5.0
+DURATION = 6.0
 HOVER_DURATION = 2.0
 
 def check_points(pos):
@@ -65,8 +65,8 @@ def to_3d(pos):
     positions = []
     for p in pos:
         x = X_MAX * p[0] / (max_x - min_x)
-        z = (Z_MAX - 0.25) * (p[1] - min_z) / (max_z-min_z) + 0.25
-        y = 0.4 * z
+        z = (Z_MAX - 0.6) * (p[1] - min_z) / (max_z-min_z) + 0.6
+        y = 1.5 * z - 1.5
         positions.append((x-1, y, z))
 
     return np.array(positions)
@@ -89,6 +89,7 @@ def main():
     scaled_w = to_3d(POS_W)
     scaled_w[-1][1] += 1
     scaled_w[-1][0] += 0.1
+    scaled_w[:, 0] *= 1.3
     scaled_n = to_3d(POS_N)
     
 
