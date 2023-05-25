@@ -4,10 +4,12 @@
 robots:
   cf1:
     enabled: false
+    enabled: false
     uri: radio://0/100/2M/E7E7E7E701
     initial_position: [-1, 1.5, 0]
     type: cf21_m1  # see robot_types
   cf3:
+    enabled: false
     enabled: false
     uri: radio://1/120/2M/E7E7E7E703
     initial_position: [-0.5, 1.5, 0]
@@ -19,10 +21,12 @@ robots:
     type: cf21_m1  # see robot_types
   cf6:
     enabled: false
+    enabled: false
     uri: radio://1/120/2M/E7E7E7E706
     initial_position: [0.5, 1.5, 0]
     type: cf21_m2 # see robot_types
   cf9:
+    enabled: false
     enabled: false
     uri: radio://1/120/2M/E7E7E7E709
     initial_position: [1, 1.5, 0]
@@ -39,25 +43,30 @@ robots:
     type: cf21_m3 # see robot_types
   cf16:
     enabled: false
+    enabled: false
     uri: radio://0/100/2M/E7E7E7E710
     initial_position: [-1, 1, 0]
     type: cf21_m4 # see robot_types   
   cf17:
+    enabled: false
     enabled: false
     uri: radio://0/100/2M/E7E7E7E711
     initial_position: [-0.5, 1, 0]
     type: cf21_m1  # see robot_types
   cf19:
     enabled: false
+    enabled: false
     uri: radio://0/100/2M/E7E7E7E713
     initial_position: [0, 1, 0]
     type: cf21_m3  # see robot_types  
   cf20:
     enabled: false
+    enabled: false
     uri: radio://0/100/2M/E7E7E7E714
     initial_position: [0.5, 1, 0]
     type: cf21_m4  # see robot_types
   cf21:
+    enabled: false
     enabled: false
     uri: radio://0/100/2M/E7E7E7E715
     initial_position: [1, 1, 0]
@@ -282,7 +291,7 @@ all:
       estimator: 2 # 1: complementary, 2: kalman
       controller: 1 # 1: PID, 2: mellinger
     ring:
-      effect: 16  # 6: double spinner, 7: solid color, 16: packetRate
+      effect: 7  # 6: double spinner, 7: solid color, 16: packetRate
       solidBlue: 255  # if set to solid color
       solidGreen: 0  # if set to solid color
       solidRed: 0  # if set to solid color
@@ -296,3 +305,5 @@ all:
   broadcasts:
     num_repeats: 15 # number of times broadcast commands are repeated
     delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats
+  unicasts:
+    num_repeats: 1

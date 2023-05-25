@@ -6,7 +6,7 @@ robots:
     enabled: true
     uri: radio://1/120/2M/E7E7E7E71C
     initial_position: [1.5, 0, 0]
-    type: cf21_m2  # see robot_types
+    type: cf21_m4  # see robot_types
   #cf8:
   #  enabled: true
   #  uri: radio://1/120/2M/E7E7E7E708
@@ -16,7 +16,7 @@ robots:
     enabled: true
     uri: radio://1/120/2M/E7E7E7E722
     initial_position: [-1, -1, 0]
-    type: cf21_m3  # see robot_types
+    type: cf21_m2  # see robot_types
   cf31:
     enabled: true
     uri: radio://0/100/2M/E7E7E7E71F
@@ -68,16 +68,21 @@ robots:
   #   uri: radio://1/120/2M/E7E7E7E72F
   #   initial_position: [-0.5, -0.5, 0]
   #   type: cf21_m4  # see robot_types
-  # cf27:
-  #   enabled: true
-  #   uri: radio://1/120/2M/E7E7E7E71B
-  #   initial_position: [-1, 0.5, 0]
-  #   type: cf21_m4  # see robot_types
-  cf20:
+  cf27:
     enabled: true
-    uri: radio://0/100/2M/E7E7E7E714
-    initial_position: [-1.5, 0, 0]
+    uri: radio://1/120/2M/E7E7E7E71B
+    initial_position: [-1.5, 0.0, 0]
     type: cf21_m3  # see robot_types
+  cf40:
+    enabled: true
+    uri: radio://0/100/2M/E7E7E7E728
+    initial_position: [0, 1.5, 0]
+    type: cf21_m4   # see robot_types
+  # cf20:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E714
+  #   initial_position: [-1.5, 0, 0]
+  #   type: cf21_m4  # see robot_types
   # cf6:
   #   enabled: true
   #   uri: radio://1/120/2M/E7E7E7E706
@@ -89,10 +94,10 @@ robots:
     initial_position: [1, 1, 0]
     type: cf21_m1   # see robot_types
   cf41:
-    enabled: true
+    enabled: false
     uri: radio://0/100/2M/E7E7E7E729
     initial_position: [1.5, -1.5, 0]
-    type: cf21_m2  # see robot_types
+    type: cf21_m1  # see robot_types
   # cf17:
   #   enabled: true
   #   uri: radio://0/100/2M/E7E7E7E711
@@ -108,11 +113,11 @@ robots:
     uri: radio://0/100/2M/E7E7E7E705
     initial_position: [1.0, -0.5, 0]
     type: cf21_m1  # see robot_types
-  # cf43:
-  #   enabled: true
-  #   uri: radio://0/100/2M/E7E7E7E7B
-  #   initial_position: [0.5, 0.5, 0]
-  #   type: cf21_m3
+  cf43:
+    enabled: false
+    uri: radio://0/100/2M/E7E7E7E72B
+    initial_position: [1.5, -1.5, 0]
+    type: cf21_m3
   # cf33:
   #   enabled: false
   #   uri: radio://1/120/2M/E7E7E7E721
@@ -246,5 +251,5 @@ all:
     #   resetEstimation: 1
 
   broadcasts:
-    num_repeats: 20 # number of times broadcast commands are repeated
-    delay_between_repeats_ms: 2 # delay in milliseconds between individual repeats
+    num_repeats: 15 # number of times broadcast commands are repeated
+    delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats
