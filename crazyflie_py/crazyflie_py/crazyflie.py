@@ -635,9 +635,14 @@ class Crazyflie:
             g (float): Green component of color, in range [0, 1].
             b (float): Blue component of color, in range [0, 1].
         """
-        self.setParam("ring.solidRed", int(r * 255))
-        self.setParam("ring.solidGreen", int(g * 255))
-        self.setParam("ring.solidBlue", int(b * 255))
+        if r >= 1 or g >= 1 or b >= 1:
+            self.setParam("ring.solidRed", int(r))
+            self.setParam("ring.solidGreen", int(g))
+            self.setParam("ring.solidBlue", int(b))
+        else:
+            self.setParam("ring.solidRed", int(r * 255))
+            self.setParam("ring.solidGreen", int(g * 255))
+            self.setParam("ring.solidBlue", int(b * 255))
 
 
 class CrazyflieServer(rclpy.node.Node):

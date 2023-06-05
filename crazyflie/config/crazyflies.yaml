@@ -2,170 +2,161 @@
 # 21, 24, 29
 # 
 robots:
-  cf1:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E701
-    initial_position: [-1, 1.5, 0]
-    type: cf21_m1  # see robot_types
+  # cf1:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E701
+  #   initial_position: [-1, 1.5, 0]
+  #   type: cf21_m1  # see robot_types
   cf3:
-    enabled: false
-    enabled: false
+    enabled: true
     uri: radio://1/120/2M/E7E7E7E703
-    initial_position: [-0.5, 1.5, 0]
+    initial_position: [0, 0, 0]
     type: cf21_m3  # see robot_types
-  cf5:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E705
-    initial_position: [0, 1.5, 0]
-    type: cf21_m1  # see robot_types
-  cf6:
-    enabled: false
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E706
-    initial_position: [0.5, 1.5, 0]
-    type: cf21_m2 # see robot_types
-  cf9:
-    enabled: false
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E709
-    initial_position: [1, 1.5, 0]
-    type: cf21_m1 # see robot_types
+  # cf5:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E705
+  #   initial_position: [2.0, 0, 0]
+  #   type: cf21_m1  # see robot_types
+  # cf6:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E706
+  #   initial_position: [0.5, 1.5, 0]
+  #   type: cf21_m2 # see robot_types
+  # cf9:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E709
+  #   initial_position: [1, 1.5, 0]
+  #   type: cf21_m1 # see robot_types
   cf11:
     enabled: true
     uri: radio://0/100/2M/E7E7E7E70B
-    initial_position: [0, 0, 0]
+    initial_position: [0.5, 0, 0]
     type: cf21_m3 # see robot_types  
-  cf15:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E70F
-    initial_position: [1.5, 1.5, 0]
-    type: cf21_m3 # see robot_types
-  cf16:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E710
-    initial_position: [-1, 1, 0]
-    type: cf21_m4 # see robot_types   
-  cf17:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E711
-    initial_position: [-0.5, 1, 0]
-    type: cf21_m1  # see robot_types
-  cf19:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E713
-    initial_position: [0, 1, 0]
-    type: cf21_m3  # see robot_types  
-  cf20:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E714
-    initial_position: [0.5, 1, 0]
-    type: cf21_m4  # see robot_types
-  cf21:
-    enabled: false
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E715
-    initial_position: [1, 1, 0]
-    type: cf21_m1
-  cf23:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E717
-    initial_position: [1.5, 1, 0]
-    type: cf21_m3
-  cf24:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E718
-    initial_position: [-1, 0.5, 0]
-    type: cf21_m4  # see robot_types
-  cf25:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E719
-    initial_position: [-0.5, 0.5, 0]
-    type: cf21_m1   # see robot_types
-  cf27:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E71B
-    initial_position: [0, 0.5, 0]
-    type: cf21_m3  # see robot_types
-  cf28:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E71C
-    initial_position: [0.5, 0.5, 0]
-    type: cf21_m4  # see robot_types
-  cf30:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E71E
-    initial_position: [0., 0., 0.]
-    type: cf21_m2  # see robot_types
-  cf31:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E71F
-    initial_position: [1.5, 0.5, 0]
-    type: cf21_m3  # see robot_types
-  cf33:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E721
-    initial_position: [-1, 0, 0]
-    type: cf21_m1
-  cf34:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E722
-    initial_position: [-0.5, 0, 0]
-    type: cf21_m3  # see robot_types
-  cf35:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E723
-    initial_position: [0, 0., 0]
-    type: cf21_m1   # see robot_types
-  cf36:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E724
-    initial_position: [0.5, 0., 0]
-    type: cf21_m4   # see robot_types
-  cf38:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E726
-    initial_position: [1, 0., 0]
-    type: cf21_m2   # see robot_types
-  cf40:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E728
-    initial_position: [0., 0., 0.]
-    type: cf21_m4   # see robot_types
-  cf41:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E729
-    initial_position: [-1, -0.5, 0]
-    type: cf21_m1  # see robot_types
-  cf43:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E72B
-    initial_position: [-0.5, -0.5, 0]
-    type: cf21_m3
-  cf44:
-    enabled: false
-    uri: radio://0/100/2M/E7E7E7E72C
-    initial_position: [0, -0.5, 0]
-    type: cf21_m4  # see robot_types
-  # cf45:
+  # cf15:
   #   enabled: false
-  #   uri: radio://0/100/2M/E7E7E7E72D
-  #   initial_position: [0.5, -0.5, 0]
+  #   uri: radio://0/100/2M/E7E7E7E70F
+  #   initial_position: [1.5, 1.5, 0]
+  #   type: cf21_m3 # see robot_types
+  # cf16:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E710
+  #   initial_position: [-1, 1, 0]
+  #   type: cf21_m4 # see robot_types   
+  # cf17:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E711
+  #   initial_position: [-0.5, 1, 0]
+  #   type: cf21_m1  # see robot_types
+  # cf19:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E713
+  #   initial_position: [0, 1, 0]
+  #   type: cf21_m3  # see robot_types  
+  # cf20:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E714
+  #   initial_position: [0.5, 1, 0]
+  #   type: cf21_m4  # see robot_types
+  # cf21:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E715
+  #   initial_position: [1.5, 0, 0]
+  #   type: cf21_m1
+  # cf23:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E717
+  #   initial_position: [0.5, 0, 0]
   #   type: cf21_m3
-  cf47:
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E72F
-    initial_position: [1, -0.5, 0]
-    type: cf21_m3  # see robot_types
-  cf50: # Note Color Wheels don't work?
-    enabled: false
-    uri: radio://1/120/2M/E7E7E7E732
-    initial_position: [1.5, -0.5, 0]
-    type: cf21_m2  # see robot_types
+  # cf24:
+  #   enabled: true
+  #   uri: radio://1/120/2M/E7E7E7E718
+  #   initial_position: [-1, 0.5, 0]
+  #   type: cf21_m4  # see robot_types
+  # cf25:
+  #   enabled: true
+  #   uri: radio://1/120/2M/E7E7E7E719
+  #   initial_position: [1, 0., 0]
+  #   type: cf21_m1   # see robot_types
+  # cf27:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E71B
+  #   initial_position: [-1, 0., 0]
+  #   type: cf21_m3  # see robot_types
+  # cf28:
+  #   enabled: true
+  #   uri: radio://1/120/2M/E7E7E7E71C
+  #   initial_position: [-0.5, 0., 0]
+  #   type: cf21_m4  # see robot_types
+  # cf30:
+  #   enabled: true
+  #   uri: radio://1/120/2M/E7E7E7E71E
+  #   initial_position: [0., 0., 0.]
+  #   type: cf21_m2  # see robot_types
+  # cf31:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E71F
+  #   initial_position: [-1.0, 0., 0]
+  #   type: cf21_m3  # see robot_types
+  # cf33:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E721
+  #   initial_position: [-1, 0, 0]
+  #   type: cf21_m1
+  # cf34:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E722
+  #   initial_position: [0, 0, 0]
+  #   type: cf21_m2  # see robot_types
+  cf35:
+    enabled: true
+    uri: radio://0/100/2M/E7E7E7E723
+    initial_position: [-0.5, 0., 0]
+    type: cf21_m1   # see robot_types
+  # cf36:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E724
+  #   initial_position: [0.5, 0., 0]
+  #   type: cf21_m4   # see robot_types
+  # cf38:
+  #   enabled: true
+  #   uri: radio://1/120/2M/E7E7E7E726
+  #   initial_position: [1, 0., 0]
+  #   type: cf21_m2   # see robot_types
+  # cf40:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E728
+  #   initial_position: [4., .5, 0.]
+  #   type: cf21_m4   # see robot_types
+  # cf41:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E729
+  #   initial_position: [0, 2., 0]
+  #   type: cf21_m1  # see robot_types
+  # cf43:
+  #   enabled: false
+  #   uri: radio://0/100/2M/E7E7E7E72B
+  #   initial_position: [-0.5, -0.5, 0]
+  #   type: cf21_m3
+  # cf44:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E72C
+  #   initial_position: [-0.5, -0., 0]
+  #   type: cf21_m4  # see robot_types
+  # cf45:
+  #   enabled: true
+  #   uri: radio://0/100/2M/E7E7E7E72D
+  #   initial_position: [-1.5, 0., 0]
+  #   type: cf21_m3
+  # cf47:
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E72F
+  #   initial_position: [1, -0.5, 0]
+  #   type: cf21_m3  # see robot_types
+  # cf50: # Note Color Wheels don't work?
+  #   enabled: false
+  #   uri: radio://1/120/2M/E7E7E7E732
+  #   initial_position: [1.5, -0.5, 0]
+  #   type: cf21_m2  # see robot_types
   # cf8: #NOTE: Radio Issues
   #   enabled: false
   #   uri: radio://1/120/2M/E7E7E7E708
@@ -306,4 +297,4 @@ all:
     num_repeats: 15 # number of times broadcast commands are repeated
     delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats
   unicasts:
-    num_repeats: 1
+    num_repeats: 2

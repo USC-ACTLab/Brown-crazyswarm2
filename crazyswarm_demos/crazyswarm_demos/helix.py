@@ -14,7 +14,7 @@ HOVER_DURATION = 2.5
 X_MIN = -8.0
 X_MAX = 2.0
 DIRECTION = -1
-TIMESTEP = 1/100
+TIMESTEP = 1/10
 RADIUS = 0.5
 DURATION = 30.0
 SPEED = np.abs(X_MAX - X_MIN) / DURATION
@@ -49,9 +49,10 @@ def main():
 
     allcfs.takeoff(targetHeight=1., duration=2.)
     timeHelper.sleep(4.0)
-
-    # Send CFs one by one to the starting positions on the circle
+    # colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (125, 125, 0), (0, 125, 125)]
+    # Send CFs one by one to the starting positions on the circle 
     for cf, pos in zip(allcfs.crazyflies, starting_positions):
+        # cf.setLED(*c)
         cf.goTo(pos, 0, 5.0)
         timeHelper.sleep(2.0)
     

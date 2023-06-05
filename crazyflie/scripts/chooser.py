@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import copy
+from functools import partial
+from logging import root
 try:
-	import Tkinter
+    import Tkinter
 except ImportError:
-	import tkinter as Tkinter
+    import tkinter as Tkinter
 from ruamel.yaml import YAML
 import pathlib
 import os
@@ -12,271 +15,510 @@ import subprocess
 import re
 import time
 import threading
+from tkinter import *
+from tkinter import colorchooser
+import numpy as np
+from crazyflie_py import *
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument(
-		"--configpath",
-		type=str,
-		default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../config/crazyflies.yaml"),
-		help="Path to the configuration .yaml file")
-	parser.add_argument(
-		"--stm32Fw",
-		type=str,
-		default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../crazyflie-firmware/cf2.bin"),
-		help="Path to cf2.bin")
-	parser.add_argument(
-		"--nrf51Fw",
-		type=str,
-		default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../crazyflie2-nrf-firmware/cf2_nrf.bin"),
-		help="Path to cf2_nrf.bin")
-	args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--configpath",
+        type=str,
+        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../config/crazyflies.yaml"),
+        help="Path to the configuration .yaml file")
+    parser.add_argument(
+        "--stm32Fw",
+        type=str,
+        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../crazyflie-firmware/cf2.bin"),
+        help="Path to cf2.bin")
+    parser.add_argument(
+        "--nrf51Fw",
+        type=str,
+        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../crazyflie2-nrf-firmware/cf2_nrf.bin"),
+        help="Path to cf2_nrf.bin")
+    args = parser.parse_args()
 
-	if not os.path.exists(args.configpath):
-		print("ERROR: Could not find yaml configuration file in configpath ({}).".format(args.configpath))
-		exit()
+    if not os.path.exists(args.configpath):
+        print("ERROR: Could not find yaml configuration file in configpath ({}).".format(args.configpath))
+        exit()
 
-	if not os.path.exists(args.stm32Fw):
-		print("WARNING: Could not find STM32 firmware ({}).".format(args.stm32Fw))
+    if not os.path.exists(args.stm32Fw):
+        print("WARNING: Could not find STM32 firmware ({}).".format(args.stm32Fw))
 
-	if not os.path.exists(args.nrf51Fw):
-		print("WARNING: Could not find NRF51 firmware ({}).".format(args.nrf51Fw))
+    if not os.path.exists(args.nrf51Fw):
+        print("WARNING: Could not find NRF51 firmware ({}).".format(args.nrf51Fw))
 
-	def selected_cfs():
-		nodes = {name: node for name, node in cfg["robots"].items() if widgets[name].checked.get()}
-		return nodes
+    def selected_cfs():
+        nodes = {name: node for name, node in cfg["robots"].items() if widgets[name].checked.get()}
+        return nodes
 
-	def save():
-		for name, node in cfg["robots"].items():
-			if widgets[name].checked.get():
-				node["enabled"] = True
-			else:
-				node["enabled"] = False
-		with open(args.configpath, 'w') as outfile:
-			yaml.dump(cfg, outfile)
+    def save():
+        for name, node in cfg["robots"].items():
+            if widgets[name].checked.get():
+                node["enabled"] = True
+            else:
+                node["enabled"] = False
+        with open(args.configpath, 'w') as outfile:
+            yaml.dump(cfg, outfile)
 
-	yaml = YAML()
-	cfg = yaml.load(pathlib.Path(args.configpath))
-	cfTypes = cfg["robot_types"]
-	enabled = [name for name in cfg["robots"].keys() if cfg["robots"][name]["enabled"] == True]
+    yaml = YAML()
+    cfg = yaml.load(pathlib.Path(args.configpath))
+    cfTypes = cfg["robot_types"]
+    enabled = [name for name in cfg["robots"].keys() if cfg["robots"][name]["enabled"] == True]
 
 
-	# compute absolute pixel coordinates from the initial positions
-	positions = [node["initial_position"] for node in cfg["robots"].values()]
-	DOWN_DIR = [-1, 0]
-	RIGHT_DIR = [0, -1]
-	def dot(a, b):
-		return a[0] * b[0] + a[1] * b[1]
-	pixel_x = [120 * dot(pos, RIGHT_DIR) for pos in positions]
-	pixel_y = [120 * dot(pos, DOWN_DIR) for pos in positions]
-	xmin, ymin = min(pixel_x), min(pixel_y)
-	xmax, ymax = max(pixel_x), max(pixel_y)
+    # compute absolute pixel coordinates from the initial positions
+    # positions = [node["initial_position"] for node in cfg["robots"].values()]
+    # DOWN_DIR = [-1, 0]
+    # RIGHT_DIR = [0, -1]
+    # def dot(a, b):
+    #     return a[0] * b[0] + a[1] * b[1]
+    # pixel_x = [120 * dot(pos, RIGHT_DIR) for pos in positions]
+    # pixel_y = [120 * dot(pos, DOWN_DIR) for pos in positions]
+    # xmin, ymin = min(pixel_x), min(pixel_y)
+    # xmax, ymax = max(pixel_x), max(pixel_y)
 
-	# construct the main window
-	top = Tkinter.Tk()
-	top.title('Crazyflie Chooser')
 
-	# construct the frame containing the absolute-positioned checkboxes
-	width = xmax - xmin + 50 # account for checkbox + text width
-	height = ymax - ymin + 50 # account for checkbox + text height
-	frame = Tkinter.Frame(top, width=width, height=height)
+    ##########################################################################################
+    positions = [node["initial_position"] for node in cfg["robots"].values()]
+    DOWN_DIR = [0, -1]
+    RIGHT_DIR = [1, 0]
+    def dot(a, b):
+        return a[0] * b[0] + a[1] * b[1]
+    pixel_x = [120 * dot(pos, RIGHT_DIR) for pos in positions]
+    pixel_y = [120 * dot(pos, DOWN_DIR) for pos in positions]
+    xmin, ymin = min(pixel_x), min(pixel_y)
+    xmax, ymax = max(pixel_x), max(pixel_y)
+    ##########################################################################################
+    # construct the main window
+    top = Tkinter.Tk()
+    top.title('Crazyflie Chooser')
 
-	class CFWidget(Tkinter.Frame):
-		def __init__(self, parent, name):
-			Tkinter.Frame.__init__(self, parent)
-			self.checked = Tkinter.BooleanVar()
-			checkbox = Tkinter.Checkbutton(self, variable=self.checked, command=save,
-				padx=0, pady=0)
-			checkbox.grid(row=0, column=0, sticky='E')
-			nameLabel = Tkinter.Label(self, text=name, padx=0, pady=0)
-			nameLabel.grid(row=0, column=1, sticky='W')
-			self.batteryLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
-			self.batteryLabel.grid(row=1, column=0, columnspan=2, sticky='E')
-			self.versionLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
-			self.versionLabel.grid(row=2, column=0, columnspan=2, sticky='E')
+    # construct the frame containing the absolute-positioned checkboxes
+    width = xmax - xmin + 200 # account for checkbox + text width
+    height = ymax - ymin + 200 # account for checkbox + text height
+    frame = Tkinter.Frame(top, width=width, height=height)
 
-	# construct all the checkboxes
-	widgets = {}
-	for (id, node), x, y in zip(cfg["robots"].items(), pixel_x, pixel_y):
-		w = CFWidget(frame, str(id))
-		w.place(x = x - xmin, y = y - ymin)
-		w.checked.set(id in enabled)
-		widgets[id] = w
+    # class CFWidget(Tkinter.Frame):
+    #     def __init__(self, parent, name):
+    #         Tkinter.Frame.__init__(self, parent)
+    #         self.checked = Tkinter.BooleanVar()
+    #         checkbox = Tkinter.Checkbutton(self, variable=self.checked, command=save,
+    #             padx=0, pady=0)
+    #         checkbox.grid(row=0, column=0, sticky='E')
+            
+    #         nameLabel = Tkinter.Label(self, text=name, padx=0, pady=0)
+    #         nameLabel.grid(row=1, column=1, sticky='W')
+            
+    #         self.batteryLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
+    #         self.batteryLabel.grid(row=1, column=0, columnspan=2, sticky='E')
+    #         self.versionLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
+    #         self.versionLabel.grid(row=2, column=0, columnspan=2, sticky='E')
+    ###################################################################################################
+    class CFWidget(Tkinter.Frame):
+        def __init__(self, parent, name):
+            Tkinter.Frame.__init__(self, parent)
+            self.checked = Tkinter.BooleanVar()
+            checkbox = Tkinter.Checkbutton(self, variable=self.checked, command=save, padx=0, pady=0)
+            checkbox.grid(row=0, column=0, sticky='e')
 
-	# dragging functionality - TODO alt-drag to deselect
-	drag_start = None
-	drag_startstate = None
+            nameLabel = Tkinter.Label(self, text=name, padx=0, pady=0, wraplength=150)
+            nameLabel.grid(row=0, column=1, sticky='w')
 
-	def minmax(a, b):
-		return min(a, b), max(a, b)
+            self.batteryLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
+            self.batteryLabel.grid(row=1, column=0, columnspan=2, sticky='e')
 
-	def mouseDown(event):
-		global drag_start, drag_startstate
-		drag_start = (event.x_root, event.y_root)
-		drag_startstate = [cf.checked.get() for cf in widgets.values()]
+            self.versionLabel = Tkinter.Label(self, text="", fg="#999999", padx=0, pady=0)
+            self.versionLabel.grid(row=2, column=0, columnspan=2, sticky='e')
 
-	def mouseUp(event):
-		save()
+            self.grid_columnconfigure(1, weight=1) 
 
-	def drag(event, select):
-		x, y = event.x_root, event.y_root
-		dragx0, dragx1 = minmax(drag_start[0], x)
-		dragy0, dragy1 = minmax(drag_start[1], y)
+    ###################################################################################################
+    # construct all the checkboxes
+    widgets = {}
+    for (id, node), x, y in zip(cfg["robots"].items(), pixel_x, pixel_y):
+        # w = CFWidget(frame, str(id) + '(' + str(x) + ',' + str(y) +')')
+        print(id)
+        w = CFWidget(frame, str(id))
+        w.place(x = x - xmin, y = y - ymin)
+        w.checked.set(id in enabled)
+        widgets[id] = w
+    
 
-		def dragcontains(widget):
-			x0 = widget.winfo_rootx()
-			y0 = widget.winfo_rooty()
-			x1 = x0 + widget.winfo_width()
-			y1 = y0 + widget.winfo_height()
-			return not (x0 > dragx1 or x1 < dragx0 or y0 > dragy1 or y1 < dragy0)
+    # dragging functionality - TODO alt-drag to deselect
+    drag_start = None
+    drag_startstate = None
 
-		# depending on interation over dicts being consistent
-		for initial, cf in zip(drag_startstate, widgets.values()):
-			if dragcontains(cf):
-				cf.checked.set(select)
-			else:
-				cf.checked.set(initial)
+    def minmax(a, b):
+        return min(a, b), max(a, b)
 
-	top.bind('<ButtonPress-1>', mouseDown)
-	top.bind('<ButtonPress-3>', mouseDown)
-	top.bind('<B1-Motion>', lambda event: drag(event, True))
-	top.bind('<B3-Motion>', lambda event: drag(event, False))
-	top.bind('<ButtonRelease-1>', mouseUp)
-	top.bind('<ButtonRelease-3>', mouseUp)
+    def mouseDown(event):
+        global drag_start, drag_startstate
+        drag_start = (event.x_root, event.y_root)
+        drag_startstate = [cf.checked.get() for cf in widgets.values()]
 
-	# buttons for clearing/filling all checkboxes
-	def clear():
-		for box in widgets.values():
-			box.checked.set(False)
-		save()
+    def mouseUp(event):
+        save()
 
-	def fill():
-		for box in widgets.values():
-			box.checked.set(True)
-		save()
+    def drag(event, select):
+        x, y = event.x_root, event.y_root
+        dragx0, dragx1 = minmax(drag_start[0], x)
+        dragy0, dragy1 = minmax(drag_start[1], y)
 
-	def mkbutton(parent, name, command):
-		button = Tkinter.Button(parent, text=name, command=command)
-		button.pack(side='left')
+        def dragcontains(widget):
+            x0 = widget.winfo_rootx()
+            y0 = widget.winfo_rooty()
+            x1 = x0 + widget.winfo_width()
+            y1 = y0 + widget.winfo_height()
+            return not (x0 > dragx1 or x1 < dragx0 or y0 > dragy1 or y1 < dragy0)
 
-	buttons = Tkinter.Frame(top)
-	mkbutton(buttons, "Clear", clear)
-	mkbutton(buttons, "Fill", fill)
+        # depending on interation over dicts being consistent
+        for initial, cf in zip(drag_startstate, widgets.values()):
+            if dragcontains(cf):
+                cf.checked.set(select)
+            else:
+                cf.checked.set(initial)
 
-	# construct bottom buttons for utility scripts
-	def sysOff():
-		nodes = selected_cfs()
-		for name, crazyflie in nodes.items():
-			uri = crazyflie["uri"]
-			subprocess.call(["ros2 run crazyflie reboot --uri " + uri + " --mode sysoff"], shell=True)
+    top.bind('<ButtonPress-1>', mouseDown)
+    top.bind('<ButtonPress-3>', mouseDown)
+    top.bind('<B1-Motion>', lambda event: drag(event, True))
+    top.bind('<B3-Motion>', lambda event: drag(event, False))
+    top.bind('<ButtonRelease-1>', mouseUp)
+    top.bind('<ButtonRelease-3>', mouseUp)
 
-	def reboot():
-		nodes = selected_cfs()
-		for name, crazyflie in nodes.items():
-			uri = crazyflie["uri"]
-			print(name)
-			subprocess.call(["ros2 run crazyflie reboot --uri " + uri], shell=True)
+    # buttons for clearing/filling all checkboxes
+    def clear():
+        for box in widgets.values():
+            box.checked.set(False)
+        save()
 
-	def flashSTM():
-		nodes = selected_cfs()
-		for name, crazyflie in nodes.items():
-			uri = crazyflie["uri"]
-			print("Flash STM32 FW to {}".format(uri))
-			subprocess.call(["ros2 run crazyflie flash --uri " + uri + " --target stm32 --filename " + args.stm32Fw], shell=True)
+    def fill():
+        for box in widgets.values():
+            box.checked.set(True)
+        save()
 
-	def flashNRF():
-		nodes = selected_cfs()
-		for name, crazyflie in nodes.items():
-			uri = crazyflie["uri"]
-			print("Flash NRF51 FW to {}".format(uri))
-			subprocess.call(["ros2 run crazyflie flash --uri " + uri + " --target nrf51 --filename " + args.nrf51Fw], shell=True)
+    def mkbutton(parent, name, command):
+        button = Tkinter.Button(parent, text=name, command=command)
+        button.pack(side='left')
 
-	def checkBattery():
-		# reset color
-		for id, w in widgets.items():
-			w.batteryLabel.config(foreground='#999999')
+    buttons = Tkinter.Frame(top)
+    mkbutton(buttons, "Clear", clear)
+    mkbutton(buttons, "Fill", fill)
 
-		# query each CF
-		nodes = selected_cfs()
-		for name, crazyflie in nodes.items():
-			uri = crazyflie["uri"]
-			cfType = crazyflie["type"]
-			bigQuad = cfTypes[cfType]["big_quad"]
-			
-			try:
-				if not bigQuad:
-					voltage = subprocess.check_output(["ros2 run crazyflie battery --uri " + uri], shell=True)
-				else:
-					voltage = subprocess.check_output(["ros2 run crazyflie battery --uri " + uri + " --external 1"], shell=True)
-			except subprocess.CalledProcessError:
-				voltage = None  # CF not available
+    # construct bottom buttons for utility scripts
+    def sysOff():
+        nodes = selected_cfs()
+        for name, crazyflie in nodes.items():
+            uri = crazyflie["uri"]
+            subprocess.call(["ros2 run crazyflie reboot --uri " + uri + " --mode sysoff"], shell=True)
 
-			color = '#000000'
-			if voltage is not None:
-				voltage = float(voltage)
-				if voltage < cfTypes[cfType]["battery"]["voltage_warning"]:
-					color = '#FF8800'
-				if voltage < cfTypes[cfType]["battery"]["voltage_critical"]:
-					color = '#FF0000'
-				widgetText = "{:.2f} v".format(voltage)
-			else:
-				widgetText = "Err"
+############################################################################################################  
+    # def led_color():
+    #     nodes = selected_cfs()
+    #     for name, crazyflie in nodes.items():
+    #         uri = crazyflie["uri"]
+    #         def chooser_color(): 
+    #             color_code = colorchooser.askcolor(title="Choose color")
+    #             r = color_code[0][0]
+    #             g = color_code[0][1]
+    #             b = color_code[0][2]
 
-			widgets[name].batteryLabel.config(foreground=color, text=widgetText)
+    #             red, green, blue = r, g, b
+    #             subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+    #             time.sleep(0.1)
+    #             subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidRed --valUint8 {}".format(uri, red)], shell=True)
+    #             subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidGreen --valUint8 {}".format(uri, green)], shell=True)
+    #             subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidBlue --valUint8 {}".format(uri, blue)], shell=True)
+            
+    #         def stop(): 
+    #         	red, green, blue = 0, 0, 0
+    #             subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidRed --valUint8 {}".format(uri, red)], shell=True)
+    #         	subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidGreen --valUint8 {}".format(uri, green)], shell=True)
+    # 			subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidBlue --valUint8 {}".format(uri, blue)], shell=True)
+    #             # subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+    #             # time.sleep(0.1)
 
-	# def checkVersion():
-	# 	for id, w in widgets.items():
-	# 		w.versionLabel.config(foreground='#999999')
-	# 	proc = subprocess.Popen(
-	# 		['python3', SCRIPTDIR + 'version.py'], stdout=subprocess.PIPE)
-	# 	versions = dict()
-	# 	versionsCount = dict()
-	# 	versionForMost = None
-	# 	versionForMostCount = 0
-	# 	for line in iter(proc.stdout.readline, ''):
-	# 		print(line)
-	# 		match = re.search("(\d+): ([0-9a-fA-F]+),(\d),([0-9a-fA-F]+)", line)
-	# 		if match:
-	# 			addr = int(match.group(1))
-	# 			v1 = match.group(2)
-	# 			modified = int(match.group(3)) == 1
-	# 			v2 = match.group(4)
-	# 			v = (v1,v2)
-	# 			versions[addr] = v
-	# 			if v in versionsCount:
-	# 				versionsCount[v] += 1
-	# 			else:
-	# 				versionsCount[v] = 1
-	# 			if versionsCount[v] > versionForMostCount:
-	# 				versionForMostCount = versionsCount[v]
-	# 				versionForMost = v
-	# 	for addr, v in versions.items():
-	# 		color = '#000000'
-	# 		if v != versionForMost:
-	# 			color = '#FF0000'
-	# 		widgets[addr].versionLabel.config(foreground=color, text=str(v[0])[0:3] + "," + str(v[1])[0:3])
+    #     	root = Tk()
+    #         root.title("Pick the color combination!")
+    #         button = Button(root, text = "Select color", command = chooser_color)
+    #         button_led_off = Button(root, text = "LED off", command = stop)
+            
+    #         button.pack()
+    #         button_led_off.pack()
+    #         root.geometry("300x300")
+    #         root.mainloop()
 
-	scriptButtons = Tkinter.Frame(top)
-	mkbutton(scriptButtons, "battery", checkBattery)
-	# currently not supported
-	# mkbutton(scriptButtons, "version", checkVersion)
-	mkbutton(scriptButtons, "sysOff", sysOff)
-	mkbutton(scriptButtons, "reboot", reboot)
-	# mkbutton(scriptButtons, "flash (STM)", flashSTM)
-	# mkbutton(scriptButtons, "flash (NRF)", flashNRF)
 
-	# start background threads
-	def checkBatteryLoop():
-		while True:
-			# rely on GIL
-			checkBattery()
-			time.sleep(10.0) # seconds
-	# checkBatteryThread = threading.Thread(target=checkBatteryLoop)
-	# checkBatteryThread.daemon = True # so it exits when the main thread exit
-	# checkBatteryThread.start()
 
-	# place the widgets in the window and start
-	buttons.pack()
-	frame.pack(padx=10, pady=10)
-	scriptButtons.pack()
-	top.mainloop()
+
+
+
+
+##########################################################################################
+######### this part needs to be fixed #########
+
+    def submit_inputs(inputs):
+        values = []
+        num = 0
+        for entry in inputs:
+            values.append(entry.get())
+        sum = int(len(values) / 3)
+        for i in range(sum):
+            print(values[num], values[num + 1], values[num + 2])
+            num = num + 3
+        drone_window.withdraw()  # Hide the drone window
+        # root.deiconify()  # Show the main window
+
+
+
+
+    def change_positions():
+        global drone_window
+        root = Tk()
+        root.title("test")
+        root.withdraw()  
+        drone_window = Toplevel(root)
+        drone_window.title("Drone Inputs")
+
+
+        def change_cf_position(name, cf):
+            cfg['robots']['name']['initial_position'] = [x, y, z]
+            save()
+            return
+
+
+        inputs = []
+
+        for name, crazyflie in cfg['robots'].items():
+            button = Button(root, text=name, command=partial(change_cf_position, name, crazyflie))
+            button.pack()
+
+            frame = Frame(drone_window)
+            frame.pack()
+
+            button = Button(frame, text="X", command=lambda: None)
+            button.pack(side=LEFT)
+
+            entry = Entry(frame, background="white")
+            entry.pack(side=LEFT)
+
+            inputs.append(entry)
+
+            button = Button(frame, text="Y", command=lambda: None)
+            button.pack(side=LEFT)
+
+            entry = Entry(frame, background="white")
+            entry.pack(side=LEFT)
+
+            inputs.append(entry)
+
+            button = Button(frame, text="Z", command=lambda: None)
+            button.pack(side=LEFT)
+
+            entry = Entry(frame, background="white")
+            entry.pack(side=LEFT)
+
+            inputs.append(entry)
+
+        submit_button = Button(drone_window, text="Submit", command=lambda: submit_inputs(inputs))
+        submit_button.pack()
+
+
+
+        # root = Tk()
+        # root.configure(background='white')
+        # button_drone = Button(root, text="Drone", command=change_positions)
+        # button_drone.pack()
+
+        # root.geometry("500x300")
+        # root.mainloop()
+
+
+##########################################################################################
+
+
+
+
+
+
+
+
+
+
+    def led_color():
+        nodes = selected_cfs()
+        
+        def chooser_color():
+            color_code = colorchooser.askcolor(title="Choose color")
+            for name, crazyflie in nodes.items():
+                uri = crazyflie["uri"]
+                r = color_code[0][0]
+                g = color_code[0][1]
+                b = color_code[0][2]
+
+                red, green, blue = r, g, b
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+                time.sleep(0.1)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidRed --valUint8 {}".format(uri, red)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidGreen --valUint8 {}".format(uri, green)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidBlue --valUint8 {}".format(uri, blue)], shell=True)
+        # I can not see what is wrong with spaces here
+        def chooser_color_by_cf():
+            for name, crazyflie in nodes.items():
+                uri = crazyflie["uri"]
+                color_code = colorchooser.askcolor(title="Choose color for {}".format(name))
+                r = color_code[0][0]
+                g = color_code[0][1]
+                b = color_code[0][2]
+
+                red, green, blue = r, g, b
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+                time.sleep(0.1)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidRed --valUint8 {}".format(uri, red)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidGreen --valUint8 {}".format(uri, green)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidBlue --valUint8 {}".format(uri, blue)], shell=True)
+
+        def stop():
+            for name, crazyflie in nodes.items():
+                uri = crazyflie["uri"]
+                red, green, blue = 0, 0, 0
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidRed --valUint8 {}".format(uri, red)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidGreen --valUint8 {}".format(uri, green)], shell=True)
+                subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.solidBlue --valUint8 {}".format(uri, blue)], shell=True)
+                # subprocess.call(["ros2 run crazyflie setParam --uri {} --parameter ring.effect --valUint8 {}".format(uri, 7)], shell=True)
+                # time.sleep(0.1)
+
+
+        root = Tk()
+        root.title("Pick the color combination!")
+        button = Button(root, text="Select color", command = chooser_color)
+        button_led_off = Button(root, text="LED off", command = stop)
+        button_led_for_each_cf = Button(root, text="Choose Color by CF", command = chooser_color_by_cf)
+
+        button.pack()
+        button_led_for_each_cf.pack()
+        button_led_off.pack()
+        root.geometry("300x300")
+        root.mainloop()
+
+
+
+############################################################################################################
+   
+    def reboot():
+        nodes = selected_cfs()
+        for name, crazyflie in nodes.items():
+            uri = crazyflie["uri"]
+            print(name)
+            subprocess.call(["ros2 run crazyflie reboot --uri " + uri], shell=True)
+
+    def flashSTM():
+        nodes = selected_cfs()
+        for name, crazyflie in nodes.items():
+            uri = crazyflie["uri"]
+            print("Flash STM32 FW to {}".format(uri))
+            subprocess.call(["ros2 run crazyflie flash --uri " + uri + " --target stm32 --filename " + args.stm32Fw], shell=True)
+
+    def flashNRF():
+        nodes = selected_cfs()
+        for name, crazyflie in nodes.items():
+            uri = crazyflie["uri"]
+            print("Flash NRF51 FW to {}".format(uri))
+            subprocess.call(["ros2 run crazyflie flash --uri " + uri + " --target nrf51 --filename " + args.nrf51Fw], shell=True)
+
+    def checkBattery():
+        # reset color
+        for id, w in widgets.items():
+            w.batteryLabel.config(foreground='#999999')
+
+        # query each CF
+        nodes = selected_cfs()
+        for name, crazyflie in nodes.items():
+            uri = crazyflie["uri"]
+            cfType = crazyflie["type"]
+            bigQuad = cfTypes[cfType]["big_quad"]
+            
+            try:
+                if not bigQuad:
+                    voltage = subprocess.check_output(["ros2 run crazyflie battery --uri " + uri], shell=True)
+                else:
+                    voltage = subprocess.check_output(["ros2 run crazyflie battery --uri " + uri + " --external 1"], shell=True)
+            except subprocess.CalledProcessError:
+                voltage = None  # CF not available
+
+            color = '#000000'
+            if voltage is not None:
+                voltage = float(voltage)
+                if voltage < cfTypes[cfType]["battery"]["voltage_warning"]:
+                    color = '#FF8800'
+                if voltage < cfTypes[cfType]["battery"]["voltage_critical"]:
+                    color = '#FF0000'
+                widgetText = "{:.2f} v".format(voltage)
+            else:
+                widgetText = "Err"
+
+            widgets[name].batteryLabel.config(foreground=color, text=widgetText)
+
+    # def checkVersion():
+    #   for id, w in widgets.items():
+    #       w.versionLabel.config(foreground='#999999')
+    #   proc = subprocess.Popen(
+    #       ['python3', SCRIPTDIR + 'version.py'], stdout=subprocess.PIPE)
+    #   versions = dict()
+    #   versionsCount = dict()
+    #   versionForMost = None
+    #   versionForMostCount = 0
+    #   for line in iter(proc.stdout.readline, ''):
+    #       print(line)
+    #       match = re.search("(\d+): ([0-9a-fA-F]+),(\d),([0-9a-fA-F]+)", line)
+    #       if match:
+    #           addr = int(match.group(1))
+    #           v1 = match.group(2)
+    #           modified = int(match.group(3)) == 1
+    #           v2 = match.group(4)
+    #           v = (v1,v2)
+    #           versions[addr] = v
+    #           if v in versionsCount:
+    #               versionsCount[v] += 1
+    #           else:
+    #               versionsCount[v] = 1
+    #           if versionsCount[v] > versionForMostCount:
+    #               versionForMostCount = versionsCount[v]
+    #               versionForMost = v
+    #   for addr, v in versions.items():
+    #       color = '#000000'
+    #       if v != versionForMost:
+    #           color = '#FF0000'
+    #       widgets[addr].versionLabel.config(foreground=color, text=str(v[0])[0:3] + "," + str(v[1])[0:3])
+
+    scriptButtons = Tkinter.Frame(top)
+    mkbutton(scriptButtons, "battery", checkBattery)
+    # currently not supported
+    # mkbutton(scriptButtons, "version", checkVersion)
+    mkbutton(scriptButtons, "sysOff", sysOff)
+    mkbutton(scriptButtons, "reboot", reboot)
+    mkbutton(scriptButtons, "positions", change_positions)
+    # added mkbutton not sure if it is right
+    mkbutton(scriptButtons, "led_color", led_color)
+
+    # mkbutton(scriptButtons, "flash (STM)", flashSTM)
+    # mkbutton(scriptButtons, "flash (NRF)", flashNRF)
+
+    # start background threads
+    
+def checkBatteryLoop():
+        while True:
+            # rely on GIL
+            checkBattery()
+            time.sleep(10.0) # seconds
+    # checkBatteryThread = threading.Thread(target=checkBatteryLoop)
+    # checkBatteryThread.daemon = True # so it exits when the main thread exit
+    # checkBatteryThread.start()
+
+    # place the widgets in the window and start
+buttons.pack()
+frame.pack(padx=10, pady=10)
+scriptButtons.pack()
+top.mainloop()
