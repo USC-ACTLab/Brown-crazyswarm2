@@ -1,7 +1,6 @@
 /motion_capture_tracking:
   ros__parameters:
     type: "vicon"
-    #hostname: "169.254.122.233"
     hostname: "169.254.217.218"
     mode: "libRigidBodyTracker" # one of motionCapture,libRigidBodyTracker
 

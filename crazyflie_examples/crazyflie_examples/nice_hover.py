@@ -10,15 +10,15 @@ def main():
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
     allcfs = swarm.allcfs
-
+    
+ 
     allcfs.takeoff(targetHeight=Z, duration=1.0+Z)
     timeHelper.sleep(1.5+Z)
     for cf in allcfs.crazyflies:
         pos = np.array(cf.initialPosition) + np.array([0, 0, Z])
         cf.goTo(pos, 0, 1.0)
-
-    # print("press button to continue...")
-    # swarm.input.waitUntilButtonPressed()
+ 
+    
     timeHelper.sleep(2.0)
 
     allcfs.land(targetHeight=0.02, duration=1.0+Z)

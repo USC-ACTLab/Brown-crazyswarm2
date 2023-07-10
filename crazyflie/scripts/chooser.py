@@ -4,10 +4,7 @@ import argparse
 import copy
 from functools import partial
 from logging import root
-try:
-    import Tkinter
-except ImportError:
-    import tkinter as Tkinter
+import tkinter as Tkinter
 from ruamel.yaml import YAML
 import pathlib
 import os
@@ -111,7 +108,6 @@ def main():
         widgets = {}
         for (id, node), x, y in zip(cfg["robots"].items(), pixel_x, pixel_y):
             # w = CFWidget(frame, str(id) + '(' + str(x) + ',' + str(y) +')')
-            print(id)
             w = CFWidget(frame, str(id))
             w.place(x = x - xmin, y = y - ymin)
             w.checked.set(id in enabled)

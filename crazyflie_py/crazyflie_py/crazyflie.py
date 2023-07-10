@@ -24,6 +24,7 @@ from rcl_interfaces.srv import GetParameters, SetParameters, ListParameters, Des
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 from crazyflie_interfaces.srv import Takeoff, Land, GoTo, UploadTrajectory, StartTrajectory, NotifySetpointsStop
 from crazyflie_interfaces.msg import TrajectoryPolynomialPiece, FullState, Position
+from tf2_msgs.msg import TFMessage
 
 def arrayToGeometryPoint(a):
     result = Point()
@@ -90,7 +91,7 @@ class Crazyflie:
     The bulk of the module's functionality is contained in this class.
     """
 
-    def __init__(self, node, cfname, paramTypeDict):
+    def __init__(self, node, cfname, paramTypeDict, index=0):
         """Constructor.
 
         Args:
@@ -99,7 +100,7 @@ class Crazyflie:
         prefix = "/" + cfname
         self.prefix = prefix
         self.node = node
-
+        self.index = index
         # self.tf = tf
 
         # rospy.wait_for_service(prefix + "/set_group_mask")
@@ -122,6 +123,10 @@ class Crazyflie:
         self.notifySetpointsStopService.wait_for_service()
         self.setParamsService = node.create_client(SetParameters, "/crazyflie_server/set_parameters")
         self.setParamsService.wait_for_service()
+
+        self.pose_subscriber = node.create_subscription(TFMessage, 'tf', self.pose_cb, 0)
+        # Position and quaternion in world frame.
+        self.pose = {}
 
         # Query some settings
         getParamsService = node.create_client(GetParameters, "/crazyflie_server/get_parameters")
@@ -228,6 +233,28 @@ class Crazyflie:
     # def disableCollisionAvoidance(self):
     #     """Disables onboard collision avoidance."""
     #     self.setParam("colAv/enable", 0)
+    def pose_cb(self, msg):
+        """Update the server's understanding of the poses for each crazyflie
+        This is utilized when a real-time understanding of the cf positions
+        and/or rotations is required. The result will update the internal
+        ``pose`` attribute.
+        """
+        for transform in msg.transforms:
+            position_i = np.array([
+                transform.transform.translation.x,
+                transform.transform.translation.y,
+                transform.transform.translation.z,
+                ])
+            rotation_i = np.array([
+                transform.transform.rotation.x,
+                transform.transform.rotation.y,
+                transform.transform.rotation.z,
+                transform.transform.rotation.w,
+                ])
+            self.pose[transform.child_frame_id] = (position_i, rotation_i)
+
+    def position(self):
+        return np.vstack([pose[0] for pose in self.pose.values()])[self.index]
 
     def emergency(self):
         """Emergency stop. Cuts power; causes future commands to be ignored.
@@ -635,7 +662,7 @@ class Crazyflie:
             g (float): Green component of color, in range [0, 1].
             b (float): Blue component of color, in range [0, 1].
         """
-        if r >= 1 or g >= 1 or b >= 1:
+        if r > 1 or g > 1 or b > 1:
             self.setParam("ring.solidRed", int(r))
             self.setParam("ring.solidGreen", int(g))
             self.setParam("ring.solidBlue", int(b))
@@ -731,8 +758,8 @@ class CrazyflieServer(rclpy.node.Node):
         self.crazyflies = []
         self.crazyfliesById = dict()
         self.crazyfliesByName = dict()
-        for cfname in cfnames:
-            cf = Crazyflie(self, cfname, allParamTypeDicts[cfname])
+        for i, cfname in enumerate(cfnames):
+            cf = Crazyflie(self, cfname, allParamTypeDicts[cfname], i)
             self.crazyflies.append(cf)
             self.crazyfliesByName[cfname] = cf
             # For legacy crazyswarm1 code, also provide crazyfliesById

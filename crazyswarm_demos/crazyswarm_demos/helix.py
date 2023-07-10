@@ -25,6 +25,12 @@ def main():
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
     allcfs = swarm.allcfs
+     
+    b = 0
+    colors_of_rgb = ([255, 0, 0], [0, 255, 0], [0, 0, 255])
+    for cf in allcfs.crazyflies:
+        cf.setLEDColor(r = colors_of_rgb[b][0], g = colors_of_rgb[b][1], b = colors_of_rgb[b][2])
+        b = b + 1
     
     if DIRECTION < 0:
         x_offset = X_MAX
@@ -49,9 +55,10 @@ def main():
 
     allcfs.takeoff(targetHeight=1., duration=2.)
     timeHelper.sleep(4.0)
-    # colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (125, 125, 0), (0, 125, 125)]
+    colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (125, 125, 0), (0, 125, 125)]
     # Send CFs one by one to the starting positions on the circle 
-    for cf, pos in zip(allcfs.crazyflies, starting_positions):
+    for cf, pos, c in zip(allcfs.crazyflies, starting_positions, colors):
+        # line 56 ERROR "Crazyflie object has no attribute 'set LED'"
         # cf.setLED(*c)
         cf.goTo(pos, 0, 5.0)
         timeHelper.sleep(2.0)
