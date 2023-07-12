@@ -23,7 +23,7 @@ from geometry_msgs.msg import Point, Twist
 from rcl_interfaces.srv import GetParameters, SetParameters, ListParameters, DescribeParameters
 from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 from crazyflie_interfaces.srv import Takeoff, Land, GoTo, UploadTrajectory, StartTrajectory, NotifySetpointsStop
-from crazyflie_interfaces.msg import TrajectoryPolynomialPiece, FullState, Position
+from crazyflie_interfaces.msg import TrajectoryPolynomialPiece, FullState, Position, VelocityWorld
 from tf2_msgs.msg import TFMessage
 
 def arrayToGeometryPoint(a):
@@ -159,14 +159,14 @@ class Crazyflie:
 
         # self.cmdStopPublisher = rospy.Publisher(prefix + "/cmd_stop", std_msgs.msg.Empty, queue_size=1)
 
-        # self.cmdVelPublisher = rospy.Publisher(prefix + "/cmd_vel", geometry_msgs.msg.Twist, queue_size=1)
+        # self.cmdVelPublisher = node.create_publisher(geometry_msgs.msg.Twist, prefix + "/cmd_vel",  1)
 
         self.cmdPositionPublisher = node.create_publisher(Position, prefix + "/cmd_position", 1)
         self.cmdPositionMsg = Position()
         self.cmdPositionMsg.header.frame_id = "/world"
 
 
-        # self.cmdVelocityWorldPublisher = rospy.Publisher(prefix + "/cmd_velocity_world", VelocityWorld, queue_size=1)
+        # self.cmdVelocityWorldPublisher = node.create_publisher(VelocityWorld, prefix + "/cmd_velocity_world", 1)
         # self.cmdVelocityWorldMsg = VelocityWorld()
         # self.cmdVelocityWorldMsg.header.seq = 0
         # self.cmdVelocityWorldMsg.header.frame_id = "/world"
@@ -351,6 +351,7 @@ class Crazyflie:
                 reference frame.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
         """
+        goal = (float(goal[0]), float(goal[1]), float(goal[2]))
         req = GoTo.Request()
         req.group_mask = groupMask
         req.relative = relative
@@ -551,34 +552,34 @@ class Crazyflie:
         self.cmdFullStateMsg.twist.angular.z    = omega[2]
         self.cmdFullStatePublisher.publish(self.cmdFullStateMsg)
 
-    # def cmdVelocityWorld(self, vel, yawRate):
-    #     """Sends a streaming velocity-world controller setpoint command.
+    def cmdVelocityWorld(self, vel, yawRate):
+        """Sends a streaming velocity-world controller setpoint command.
 
-    #     In this mode, the PC specifies desired velocity vector and yaw rate.
-    #     The onboard controller will try to achive this velocity.
+        In this mode, the PC specifies desired velocity vector and yaw rate.
+        The onboard controller will try to achive this velocity.
 
-    #     NOTE: the Mellinger controller is Crazyswarm's default controller, but
-    #     it has not been tuned (or even tested) for velocity control mode.
-    #     Switch to the PID controller by changing
-    #     `firmwareParams.stabilizer.controller` to `1` in your launch file.
+        NOTE: the Mellinger controller is Crazyswarm's default controller, but
+        it has not been tuned (or even tested) for velocity control mode.
+        Switch to the PID controller by changing
+        `firmwareParams.stabilizer.controller` to `1` in your launch file.
 
-    #     Sending a streaming setpoint of any type will force a change from
-    #     high-level to low-level command mode. Currently, there is no mechanism
-    #     to change back, but it is a high-priority feature to implement.
-    #     This means it is not possible to use e.g. :meth:`land()` or
-    #     :meth:`goTo()` after a streaming setpoint has been sent.
+        Sending a streaming setpoint of any type will force a change from
+        high-level to low-level command mode. Currently, there is no mechanism
+        to change back, but it is a high-priority feature to implement.
+        This means it is not possible to use e.g. :meth:`land()` or
+        :meth:`goTo()` after a streaming setpoint has been sent.
 
-    #     Args:
-    #         vel (array-like of float[3]): Velocity. Meters / second.
-    #         yawRate (float): Yaw angular velocity. Degrees / second.
-    #     """
-    #     self.cmdVelocityWorldMsg.header.stamp = rospy.Time.now()
-    #     self.cmdVelocityWorldMsg.header.seq += 1
-    #     self.cmdVelocityWorldMsg.vel.x = vel[0]
-    #     self.cmdVelocityWorldMsg.vel.y = vel[1]
-    #     self.cmdVelocityWorldMsg.vel.z = vel[2]
-    #     self.cmdVelocityWorldMsg.yawRate = yawRate
-    #     self.cmdVelocityWorldPublisher.publish(self.cmdVelocityWorldMsg)
+        Args:
+            vel (array-like of float[3]): Velocity. Meters / second.
+            yawRate (float): Yaw angular velocity. Degrees / second.
+        """
+        self.cmdVelocityWorldMsg.header.stamp = self.node.get_clock().now().to_msg()
+        self.cmdVelocityWorldMsg.header.seq += 1
+        self.cmdVelocityWorldMsg.vel.x = vel[0]
+        self.cmdVelocityWorldMsg.vel.y = vel[1]
+        self.cmdVelocityWorldMsg.vel.z = vel[2]
+        self.cmdVelocityWorldMsg.yawRate = yawRate
+        self.cmdVelocityWorldPublisher.publish(self.cmdVelocityWorldMsg)
 
     # def cmdStop(self):
     #     """Interrupts any high-level command to stop and cut motor power.
@@ -637,9 +638,9 @@ class Crazyflie:
             yaw (float): Yaw angle. Radians.
         """
         self.cmdPositionMsg.header.stamp = self.node.get_clock().now().to_msg()
-        self.cmdPositionMsg.x   = pos[0]
-        self.cmdPositionMsg.y   = pos[1]
-        self.cmdPositionMsg.z   = pos[2]
+        self.cmdPositionMsg.x   = float(pos[0])
+        self.cmdPositionMsg.y   = float(pos[1])
+        self.cmdPositionMsg.z   = float(pos[2])
         self.cmdPositionMsg.yaw = yaw
         self.cmdPositionPublisher.publish(self.cmdPositionMsg)
 
@@ -840,6 +841,7 @@ class CrazyflieServer(rclpy.node.Node):
             duration (float): How long until the goal is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`Crazyflie.setGroupMask()` doc.
         """
+        goal = (float(goal[0]), float(goal[1]), float(goal[2]))
         req = GoTo.Request()
         req.group_mask = groupMask
         req.relative = True
