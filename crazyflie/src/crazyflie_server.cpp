@@ -101,7 +101,11 @@ private:
     uint16_t right;
   } __attribute__((packed));
 
+  // int unicasts_num_repeats_;
+
 public:
+  int unicasts_num_repeats_;
+
   CrazyflieROS(
     const std::string& link_uri,
     const std::string& cf_type,
@@ -120,6 +124,7 @@ public:
     , node_(node)
     , tf_broadcaster_(node)
   {
+    RCLCPP_INFO(logger_, "Beginning Connection...");
     auto sub_opt_cf_cmd = rclcpp::SubscriptionOptions();
     sub_opt_cf_cmd.callback_group = callback_group_cf_cmd;
 
@@ -251,14 +256,13 @@ public:
       auto end1 = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedSeconds1 = end1 - start;
       RCLCPP_INFO(logger_, "reqParamTOC: %f s (%d params)", elapsedSeconds1.count(), numParams);
-      RCLCPP_INFO(logger_, "Unicasts %i",  unicasts_num_repeats_);
       // Set parameters as specified in the configuration files, as in the following order
       // 1.) check all/firmware_params
       // 2.) check robot_types/<type_name>/firmware_params
       // 3.) check robots/<robot_name>/firmware_params
       // where the higher order is used if defined on multiple levels.
 
-      unicasts_num_repeats_ = 2;
+      this->unicasts_num_repeats_ = 2;
 
       // <group>.<name> -> value map
       std::map<std::string, rclcpp::ParameterValue> set_param_map;
@@ -276,7 +280,7 @@ public:
         change_parameter(rclcpp::Parameter(paramName, i.second));
       }
     }
-    
+
 
     // Logging
     {
@@ -363,7 +367,6 @@ public:
         }
       }
     }
-
     RCLCPP_INFO(logger_, "Requesting memories...");
     cf_.requestMemoryToc();
   }
@@ -395,8 +398,7 @@ public:
 
   void change_parameter(const rclcpp::Parameter& p)
   {
-    unicasts_num_repeats_= 2;
-    for (size_t i = 0; i < unicasts_num_repeats_; ++i)
+    for (size_t i = 0; i < this->unicasts_num_repeats_; ++i)
     {
       change_parameter_(p);
     }
@@ -551,13 +553,20 @@ private:
   void takeoff(const std::shared_ptr<Takeoff::Request> request,
                std::shared_ptr<Takeoff::Response> response)
   {
+    for (size_t i = 0; i < this->unicasts_num_repeats_; ++i)
+    {
+      takeoff_(request, response);
+    }
+  }
+  void takeoff_(const std::shared_ptr<Takeoff::Request> request,
+               std::shared_ptr<Takeoff::Response> response)
+  {
     RCLCPP_INFO(logger_, "takeoff(height=%f m, duration=%f s, group_mask=%d)", 
                 request->height,
                 rclcpp::Duration(request->duration).seconds(),
                 request->group_mask);
     cf_.takeoff(request->height, rclcpp::Duration(request->duration).seconds(), request->group_mask);
   }
-
   void land(const std::shared_ptr<Land::Request> request,
             std::shared_ptr<Land::Response> response)
   {
@@ -637,8 +646,16 @@ private:
     }
     cf_.uploadTrajectory(request->trajectory_id, request->piece_offset, pieces);
   }
-
   void notify_setpoints_stop(const std::shared_ptr<NotifySetpointsStop::Request> request,
+                         std::shared_ptr<NotifySetpointsStop::Response> response)
+  {
+    for (size_t i = 0; i < this->unicasts_num_repeats_; ++i)
+    {
+      notify_setpoints_stop_(request, response);
+    }
+  }
+
+  void notify_setpoints_stop_(const std::shared_ptr<NotifySetpointsStop::Request> request,
                          std::shared_ptr<NotifySetpointsStop::Response> response)
   {
     RCLCPP_INFO(logger_, "notify_setpoints_stop(remain_valid_millisecs%d, group_mask=%d)",
@@ -761,7 +778,6 @@ private:
   // multithreading
   rclcpp::CallbackGroup::SharedPtr callback_group_cf_;
   rclcpp::TimerBase::SharedPtr spin_timer_;
-  int unicasts_num_repeats_;
 };
 
 class CrazyflieServer : public rclcpp::Node
@@ -811,7 +827,7 @@ public:
     this->declare_parameter("firmware_params.query_all_values_on_connect", false);
 
     broadcasts_num_repeats_ = this->get_parameter("all.broadcasts.num_repeats").get_parameter_value().get<int>();
-    unicasts_num_repeats_ = this->get_parameter("all.unicasts.num_repeats").get_parameter_value().get<int>();
+    int unicasts_num_repeats_ = this->get_parameter("all.unicasts.num_repeats").get_parameter_value().get<int>();
     broadcasts_delay_between_repeats_ms_ = this->get_parameter("all.broadcasts.delay_between_repeats_ms").get_parameter_value().get<int>();
     mocap_enabled_ = false;
 
@@ -852,6 +868,7 @@ public:
             callback_group_cf_srv_));
 
           auto broadcastUri = crazyflies_[name]->broadcastUri();
+          crazyflies_[name]->unicasts_num_repeats_ = unicasts_num_repeats_;
           RCLCPP_INFO(logger_, "%s", broadcastUri.c_str());
           if (broadcaster_.count(broadcastUri) == 0) {
             broadcaster_.emplace(broadcastUri, std::make_unique<CrazyflieBroadcaster>(broadcastUri));
@@ -1223,7 +1240,6 @@ private:
     // global params
     int broadcasts_num_repeats_;
     int broadcasts_delay_between_repeats_ms_;
-    int unicasts_num_repeats_;
 
     // parameter updates
     std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;

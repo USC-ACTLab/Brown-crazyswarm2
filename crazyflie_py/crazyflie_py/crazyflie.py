@@ -14,7 +14,7 @@ import numpy as np
 # from .visualizer import visNull
 
 from collections import defaultdict
-
+import copy
 import rclpy
 import rclpy.node
 import rowan
@@ -91,7 +91,7 @@ class Crazyflie:
     The bulk of the module's functionality is contained in this class.
     """
 
-    def __init__(self, node, cfname, paramTypeDict, index=0):
+    def __init__(self, node, cfname, paramTypeDict, index=0, log_pose=False):
         """Constructor.
 
         Args:
@@ -127,6 +127,10 @@ class Crazyflie:
         self.pose_subscriber = node.create_subscription(TFMessage, 'tf', self.pose_cb, 0)
         # Position and quaternion in world frame.
         self.pose = {}
+        self.log_pose = log_pose
+        if self.log_pose:
+            print("I'm gonna log poses")
+            self.poses = []
 
         # Query some settings
         getParamsService = node.create_client(GetParameters, "/crazyflie_server/get_parameters")
@@ -166,10 +170,9 @@ class Crazyflie:
         self.cmdPositionMsg.header.frame_id = "/world"
 
 
-        # self.cmdVelocityWorldPublisher = node.create_publisher(VelocityWorld, prefix + "/cmd_velocity_world", 1)
-        # self.cmdVelocityWorldMsg = VelocityWorld()
-        # self.cmdVelocityWorldMsg.header.seq = 0
-        # self.cmdVelocityWorldMsg.header.frame_id = "/world"
+        self.cmdVelocityWorldPublisher = node.create_publisher(VelocityWorld, prefix + "/cmd_velocity_world", 1)
+        self.cmdVelocityWorldMsg = VelocityWorld()
+        self.cmdVelocityWorldMsg.header.frame_id = "/world"
 
     # def setGroupMask(self, groupMask):
     #     """Sets the group mask bits for this robot.
@@ -233,6 +236,7 @@ class Crazyflie:
     # def disableCollisionAvoidance(self):
     #     """Disables onboard collision avoidance."""
     #     self.setParam("colAv/enable", 0)
+    
     def pose_cb(self, msg):
         """Update the server's understanding of the poses for each crazyflie
         This is utilized when a real-time understanding of the cf positions
@@ -252,6 +256,8 @@ class Crazyflie:
                 transform.transform.rotation.w,
                 ])
             self.pose[transform.child_frame_id] = (position_i, rotation_i)
+        if self.log_pose:
+            self.poses.append(copy.copy(self.pose))
 
     def position(self):
         return np.vstack([pose[0] for pose in self.pose.values()])[self.index]
@@ -574,11 +580,11 @@ class Crazyflie:
             yawRate (float): Yaw angular velocity. Degrees / second.
         """
         self.cmdVelocityWorldMsg.header.stamp = self.node.get_clock().now().to_msg()
-        self.cmdVelocityWorldMsg.header.seq += 1
+        # self.cmdVelocityWorldMsg.header.seq += 1
         self.cmdVelocityWorldMsg.vel.x = vel[0]
         self.cmdVelocityWorldMsg.vel.y = vel[1]
         self.cmdVelocityWorldMsg.vel.z = vel[2]
-        self.cmdVelocityWorldMsg.yawRate = yawRate
+        self.cmdVelocityWorldMsg.yaw_rate = yawRate
         self.cmdVelocityWorldPublisher.publish(self.cmdVelocityWorldMsg)
 
     # def cmdStop(self):
@@ -684,7 +690,7 @@ class CrazyflieServer(rclpy.node.Node):
         crazyfliesById (Dict[int, Crazyflie]): Index to the same Crazyflie
             objects by their ID number (last byte of radio address).
     """
-    def __init__(self):
+    def __init__(self, log_poses=False):
         """Initialize the server. Waits for all ROS services before returning.
         """
         super().__init__("CrazyflieAPI")
@@ -760,12 +766,15 @@ class CrazyflieServer(rclpy.node.Node):
         self.crazyfliesById = dict()
         self.crazyfliesByName = dict()
         for i, cfname in enumerate(cfnames):
-            cf = Crazyflie(self, cfname, allParamTypeDicts[cfname], i)
+            cf = Crazyflie(self, cfname, allParamTypeDicts[cfname], i, log_pose=log_poses)
             self.crazyflies.append(cf)
             self.crazyfliesByName[cfname] = cf
             # For legacy crazyswarm1 code, also provide crazyfliesById
             cfid = int(cf.uri[-2:], 16)
             self.crazyfliesById[cfid] = cf
+        sorted_crazyflies = sorted([(cf.initialPosition[0], np.random.uniform(), cf) for cf in self.crazyflies])
+        self.crazyflies = [sorted_cf[2] for sorted_cf  in sorted_crazyflies]
+
 
     def emergency(self):
         """Emergency stop. Cuts power; causes future commands to be ignored.
