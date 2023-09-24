@@ -12,10 +12,11 @@ from pathlib import Path
 TAKEOFF_DURATION = 2.
 HOVER_DURATION = 2.5
 X_MIN = -8.0
-X_MAX = 2.0
+X_MAX = 1.5
 DIRECTION = -1
 TIMESTEP = 1/10
-RADIUS = 0.5
+RADIUS = 0.75
+PERIOD = 6 * np.pi
 DURATION = 30.0
 SPEED = np.abs(X_MAX - X_MIN) / DURATION
 
@@ -27,10 +28,10 @@ def main():
     allcfs = swarm.allcfs
      
     b = 0
-    colors_of_rgb = ([255, 0, 0], [0, 255, 0], [0, 0, 255])
+    colors_of_rgb = ([255, 0, 0], [0, 255, 0], [0, 0, 255], [0, 255, 255], [255, 0, 255])
     for cf in allcfs.crazyflies:
         cf.setLEDColor(r = colors_of_rgb[b][0], g = colors_of_rgb[b][1], b = colors_of_rgb[b][2])
-        b = b + 1
+        b = (b + 1) % len(allcfs.crazyflies)
     
     if DIRECTION < 0:
         x_offset = X_MAX
@@ -39,8 +40,8 @@ def main():
 
     # Helix moving from positive x to negative x
     fx = lambda t: DIRECTION * t * SPEED + x_offset
-    fy = lambda t: RADIUS*np.sin(t)
-    fz = lambda t: RADIUS*np.cos(t) + 1.25
+    fy = lambda t: RADIUS*np.sin(t/(PERIOD / (2*np.pi)))
+    fz = lambda t: RADIUS*np.cos(t/(PERIOD/(2*np.pi))) + 1.25
 
     # Sort CFs by decreasing X coordinate, ties are broken with a random number 
     sorted_cfs = reversed(sorted([(cf.initialPosition[0], np.random.uniform(), cf) for cf in allcfs.crazyflies]))
@@ -50,7 +51,7 @@ def main():
     allcfs.crazyflies = cfs
     
     # Evenly space crazyflies around the circle, if many crazyflies are used, an x offset might be necessary
-    period_offset = np.linspace(0, 2*np.pi, len(allcfs.crazyflies), endpoint=False)
+    period_offset = np.linspace(0, PERIOD, len(allcfs.crazyflies), endpoint=False)
     starting_positions = [(fx(0), fy(offset), fz(offset), 0) for offset in period_offset]
 
     allcfs.takeoff(targetHeight=1., duration=2.)
@@ -100,6 +101,8 @@ def main():
             cf.cmdPosition(pos)
         t += TIMESTEP
         timeHelper.sleepForRate(1/TIMESTEP)
+    for cf in allcfs.crazyflies:
+        cf.stop()
     print("Landed!")
 
 if __name__ == "__main__":

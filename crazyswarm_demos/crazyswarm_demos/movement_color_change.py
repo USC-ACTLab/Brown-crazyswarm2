@@ -31,20 +31,20 @@ def change_color():
                 for cf in allcfs.crazyflies:
                     cf.setLEDColor(r=r, g=g, b=b)
         
-        def chooser_color_by_cf():
-            for cf in allcfs.crazyflies:
-                color_code = colorchooser.askcolor(title="Choose color")
-                r = color_code[0][0]
-                g = color_code[0][1]
-                b = color_code[0][2]
+        # def chooser_color_by_cf():
+        #     for cf in allcfs.crazyflies:
+        #         color_code = colorchooser.askcolor(title="Choose color")
+        #         r = color_code[0][0]
+        #         g = color_code[0][1]
+        #         b = color_code[0][2]
 
-                cf.setLEDColor(r=r, g=g, b=b)
+        #         cf.setLEDColor(r=r, g=g, b=b)
 
         root = Tk()
         root.title("Pick the color combination!")
         button = Button(root, text = "Select color", command = chooser_color)
-        button_led_for_each_cf = Button(root, text="Choose Color by CF", command = chooser_color_by_cf)
-        button_led_for_each_cf.pack()
+        # button_led_for_each_cf = Button(root, text="Choose Color by CF", command = chooser_color_by_cf)
+        # button_led_for_each_cf.pack()
         button.pack()
 
         root.geometry("300x300")

@@ -155,7 +155,7 @@ def main():
     print("returning to init positions")
     timeHelper.sleep(DURATION)
     print("Landing")
-    cfs.land(0.04, duration=5.0)
+    cfs.land(0.04, duration=2.5)
 
 if __name__ == '__main__':
     main()

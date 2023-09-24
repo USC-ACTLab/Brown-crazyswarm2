@@ -1,0 +1,19 @@
+rosbag2_bagfile_information:
+  version: 4
+  storage_identifier: sqlite3
+  relative_file_paths:
+    - rosbag2_2023_09_15-15_42_12_0.db3
+  duration:
+    nanoseconds: 28326475678
+  starting_time:
+    nanoseconds_since_epoch: 1694806932308099836
+  message_count: 4250
+  topics_with_message_count:
+    - topic_metadata:
+        name: /poses
+        type: motion_capture_tracking_interfaces/msg/NamedPoseArray
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 1\n  depth: 1\n  reliability: 2\n  durability: 2\n  deadline:\n    sec: 0\n    nsec: 6666666\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 4250
+  compression_format: ""
+  compression_mode: ""

@@ -89,11 +89,11 @@ robots:
   #   uri: radio://1/120/2M/E7E7E7E71C
   #   initial_position: [-0.5, 0., 0]
   #   type: cf21_m4  # see robot_types
-  # cf30:
-  #   enabled: false
-  #   uri: radio://1/120/2M/E7E7E7E71E
-  #   initial_position: [0., 0., 0.]
-  #   type: cf21_m2  # see robot_types
+  cf30:
+    enabled: true
+    uri: radio://1/120/2M/E7E7E7E71E
+    initial_position: [0., 0., 0.]
+    type: cf21_m2  # see robot_types
   # cf31:
   #   enabled: true
   #   uri: radio://0/100/2M/E7E7E7E71F
@@ -284,7 +284,7 @@ all:
       estimator: 2 # 1: complementary, 2: kalman
       controller: 1 # 1: PID, 2: mellinger
     ring:
-      effect: 7  # 6: double spinner, 7: solid color, 16: packetRate
+      effect: 16  # 6: double spinner, 7: solid color, 16: packetRate
       solidBlue: 255  # if set to solid color
       solidGreen: 0  # if set to solid color
       solidRed: 0  # if set to solid color

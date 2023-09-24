@@ -9,7 +9,7 @@
     # simulation related
     sim:
       max_dt: 0.1 #0.1              # artificially limit the step() function (set to 0 to disable)
-      backend: none                 # see backend folder for a list 
+      backend: np                 # see backend folder for a list 
       visualizations:             # see visualization folder for a list
         rviz:
           enabled: true

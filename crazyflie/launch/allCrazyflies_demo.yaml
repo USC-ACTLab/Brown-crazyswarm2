@@ -1,0 +1,135 @@
+crazyflies:
+  - id: 24
+    channel: 100
+    initialPosition: [-0.5, 2.38, 0.0]
+    type: defaultSingleMarker
+  - id: 2
+    channel: 100
+    initialPosition: [0.0, 0., 0.0]
+    type: defaultSingleMarker
+  - id: 43
+    channel: 120
+    initialPosition: [1.53, 2.21, 0.0]
+    type: defaultSingleMarker 
+  - id: 45
+    channel: 100
+    initialPosition: [2.5, 2.1, 0.0]
+    type: defaultSingleMarker   
+  - id: 5
+    channel: 100
+    initialPosition: [3.33, 2.0, 0.0]
+    type: defaultSingleMarker
+  - id: 20
+    channel: 100
+    initialPosition: [4.0, 1.77, 0.0]
+    type: defaultSingleMarker
+  - id: 67
+    channel: 80
+    initialPosition: [4.77, 1.4, 0.0]
+    type: defaultSingleMarker
+  # - id: 25
+  #   channel: 120
+  #   initialPosition: [5.25, 0.76, 0.0]
+  #   type: defaultSingleMarker
+  - id: 40
+    channel: 80
+    initialPosition: [5.63, 0.07, 0.0]
+    type: defaultSingleMarker
+  - id: 27
+    channel: 80
+    initialPosition: [5.34, -0.63, 0.0]
+    type: defaultSingleMarker
+  - id: 11
+    channel: 100
+    initialPosition: [4.9, -1.38, 0.0]
+    type: defaultSingleMarker
+  - id: 41
+    channel: 100
+    initialPosition: [4.22, -2.21, 0.0]
+    type: defaultSingleMarker
+  - id: 13
+    channel: 80
+    initialPosition: [3.41, -2.62, 0.0]
+    type: defaultSingleMarker
+  - id: 9
+    channel: 80
+    initialPosition: [2.55, -2.78, 0.0]
+    type: defaultSingleMarker
+  - id: 6
+    channel: 120
+    initialPosition: [1.56, -2.91, 0.0]
+    type: defaultSingleMarker
+  - id: 14
+    channel: 120
+    initialPosition: [0.48, -3.04, 0.0]
+    type: defaultSingleMarker
+  - id: 19
+    channel: 80
+    initialPosition: [-0.34, -3.21, 0.0]
+    type: defaultSingleMarker
+  - id: 18
+    channel: 100
+    initialPosition: [-1.44, -3.21, 0.0]
+    type: defaultSingleMarker
+  - id: 33
+    channel: 100
+    initialPosition: [-2.41, -3.05, 0.0]
+    type: defaultSingleMarker
+  - id: 30
+    channel: 120
+    initialPosition: [-3.33, -2.95, 0.0]
+    type: defaultSingleMarker
+  - id: 17
+    channel: 120
+    initialPosition: [-4.15, -2.66, 0.0]
+    type: defaultSingleMarker
+  - id: 12
+    channel: 120
+    initialPosition: [-4.75, -2.17, 0.0]
+    type: defaultSingleMarker
+  - id: 22
+    channel: 100
+    initialPosition: [-5.18, -1.60, 0.0]
+    type: defaultSingleMarker
+  - id: 36
+    channel: 100
+    initialPosition: [-5.5, -0.85, 0.0]
+    type: defaultSingleMarker
+  - id: 10
+    channel: 100
+    initialPosition: [-5.8, -0.25, 0.0]
+    type: defaultSingleMarker
+  - id: 38
+    channel: 120
+    initialPosition: [-5.6, 0.45, 0.0]
+    type: defaultSingleMarker
+  - id: 66
+    channel: 80
+    initialPosition: [-5.18, 1.08, 0.0]
+    type: defaultSingleMarker
+  - id: 60
+    channel: 80
+    initialPosition: [-4.57, 1.53, 0.0]
+    type: defaultSingleMarker
+  - id: 65
+    channel: 80
+    initialPosition: [-4.0, 1.7, 0.0]
+    type: defaultSingleMarker
+  - id: 62
+    channel: 80
+    initialPosition: [-3.2, 1.85, 0.0]
+    type: defaultSingleMarker
+  - id: 21
+    channel: 120
+    initialPosition: [-2.3, 2.02, 0.0]
+    type: defaultSingleMarker
+  - id: 72
+    channel: 80
+    initialPosition: [-1.37, 2.17, 0.0]
+    type: defaultSingleMarker
+  - id: 44
+    channel: 80
+    initialPosition: [5.25, 0.76, 0.0]
+    type: defaultSingleMarker
+
+   

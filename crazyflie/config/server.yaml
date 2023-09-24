@@ -3,7 +3,7 @@
     warnings:
       frequency: 1.0 # report/run checks once per second
       motion_capture:
-        warning_if_rate_outside: [80.0, 120.0]
+        warning_if_rate_outside: [140.0, 160.0]
     firmware_params:
       query_all_values_on_connect: False
     # simulation related

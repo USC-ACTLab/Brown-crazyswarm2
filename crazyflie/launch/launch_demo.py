@@ -13,8 +13,8 @@ def generate_launch_description():
     # load crazyflies
     crazyflies_yaml = os.path.join(
         get_package_share_directory('crazyflie'),
-        'config',
-        'crazyflies.yaml')
+        'launch',
+        'crazyflies_demo.yaml')
 
     with open(crazyflies_yaml, 'r') as ymlfile:
         crazyflies = yaml.safe_load(ymlfile)

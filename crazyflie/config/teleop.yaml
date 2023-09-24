@@ -22,15 +22,15 @@
     cmd_vel_world:
       x_velocity:
         axis: 5
-        max: 1.0 # m/s
+        max: 0.75 # m/s
         deadband: 0.1 # m/s
       y_velocity:
         axis: 4
-        max: 1.0 # m/s
+        max: 0.75 # m/s
         deadband: 0.1 # m/s
       z_velocity:
         axis: 2
-        max: 1.0 # m/s
+        max: 0.75 # m/s
         deadband: 0.1 # m/s
       yaw_velocity:
         axis: 1

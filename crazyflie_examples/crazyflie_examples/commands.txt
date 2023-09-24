@@ -1,0 +1,10 @@
+command to open the chooser.py where you can check the battery, change the location of the drone, and rebot
+ros2 run crazyflie chooser.py
+
+command to launch the system and the cameras after setting up the yaml file 
+ros2 launch crazyflie launch.py
+
+if using the ros2 version, this command needs to be run on a separte terminal to go to this directory, and then you can choose which last directory you want to go, 
+like crazyfluie_examples, or crazyflie_demos which contains most of the scripts
+cd ros2_ws/src/crazyswarm2/
+after this you can do cd crazyflie_examples/crazyflie_examples/ and finaally run the script with "python3 script.py"
