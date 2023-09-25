@@ -54,24 +54,8 @@ def main():
 
     stacked_array = np.vstack(states)
 
-    # scipy.io.savemat('experiment_data/downwash_crossing_{}_sep_{}_m.mat'.format(datetime.datetime.now(), np.array(SEPARATION)), {'states_array': stacked_array,'separation': np.array(SEPARATION)}, do_compression=False)
+    scipy.io.savemat('experiment_data/downwash_crossing_{}_sep_{}_m.mat'.format(datetime.datetime.now(), SEPARATION), {'states_array': stacked_array,'separation': np.array(SEPARATION)}, do_compression=False)
 
-
-    # data = {
-    #     'x1': x1,
-    #     'y1': y1,
-    #     'z1': z1,
-    #     'x2': x2,
-    #     'y2': y2,
-    #     'z2': z2
-    # }
-    
-    # df = pd.DataFrame(data)
-    # with open('experiment_data/data_table_{}.pkl'.format(datetime.datetime.now()), 'wb') as f:
-    #     pk.dump({'data_table':df.to_dict(), 'separation': np.array(SEPARATION)}, f)
-    # scipy.io.savemat('experiment_data/data_table_{}.mat'.format(datetime.datetime.now()), {'data_table':df.to_dict(), 'separation': np.array(SEPARATION)})
-    # scipy.io.savemat('experiment_data/data_table_{}.mat'.format(datetime.datetime.now()), {'data_table': np.array(data), 'separation': np.array(SEPARATION)})
-    # print(df.to_dict())
     plt.plot(t, x1)
     plt.plot(t, x2)
     plt.show()
