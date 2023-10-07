@@ -12,13 +12,13 @@ def main():
 
     # disable LED (one by one)
     for cf in allcfs.crazyflies:
-        cf.setParam("led.bitmask", 128)
+        cf.setParam("motorPowerSet.enable", 1)
         timeHelper.sleep(1.0)
 
     timeHelper.sleep(2.0)
 
     # enable LED (broadcast)
-    allcfs.setParam("led.bitmask", 0)
+    allcfs.setParam("motorPowerSet.m1", 20000)
     timeHelper.sleep(5.0)
 
 

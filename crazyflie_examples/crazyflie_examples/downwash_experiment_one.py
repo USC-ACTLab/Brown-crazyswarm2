@@ -7,13 +7,13 @@ import scipy.io
 import datetime
 def main():
     Z = 1.0
-    SEPARATION = 0.1
+    SEPARATION = 0.2
     
     swarm = Crazyswarm(log_poses=True)
     timeHelper = swarm.timeHelper
     allcfs = swarm.allcfs
     
-    positionsToGo = [(1.5, 0.,Z + SEPARATION), (0.,0.,Z)]
+    positionsToGo = [(2.5, 0.,Z + SEPARATION), (0.,0.,Z)]
  
     for cf, pos in zip(allcfs.crazyflies, positionsToGo):
         # pos = np.array(cf.initialPosition) + np.array([0, 0, Z])
@@ -21,10 +21,10 @@ def main():
     timeHelper.sleep(2.0+Z)
     for cf, pos in zip(allcfs.crazyflies, positionsToGo):
         # pos = np.array(cf.initialPosition) + np.array([0, 0, Z])
-        cf.goTo(pos, 0., 5.0)
+        cf.goTo(pos, 0., 21.0)
  
     
-    timeHelper.sleep(6.0)
+    timeHelper.sleep(21.0)
 
     allcfs.land(targetHeight=0.04, duration=1.0+Z)
     timeHelper.sleep(1.5+Z)
@@ -33,21 +33,23 @@ def main():
         poses = cf.poses
 
 
-    x1 = [p['cf29'][0][0] for p in poses]
+    x1 = [p['cf67'][0][0] for p in poses]
     x2 = [p['cf62'][0][0] for p in poses]
-    y1 = [p['cf29'][0][1] for p in poses]
+    y1 = [p['cf67'][0][1] for p in poses]
     y2 = [p['cf62'][0][1] for p in poses]
-    z1 = [p['cf29'][0][2] for p in poses]
+    z1 = [p['cf67'][0][2] for p in poses]
     z2 = [p['cf62'][0][2] for p in poses]
 
     #orientation
-    r1 = [p['cf29'][1][0] for p in poses]
+    # this all are error variables, they get nothoing
+    r1 = [p['cf67'][1][0] for p in poses]
     r2 = [p['cf62'][1][0] for p in poses]
-    p1 = [p['cf29'][1][1] for p in poses]
+    p1 = [p['cf67'][1][1] for p in poses]
     p2 = [p['cf62'][1][1] for p in poses]
-    s1 = [p['cf29'][1][2] for p in poses]
+    s1 = [p['cf67'][1][2] for p in poses]
     s2 = [p['cf62'][1][2] for p in poses]
     t = np.arange(0, len(x2)/150, 1/150)
+
 
     states = [t, x1, x2, y1, y2, z1, z2, r1, r2, p1, p2, s1, s2]
 
@@ -62,8 +64,8 @@ def main():
 
     allcfs.crazyflies[0].takeoff(1.0, 2.0)
     timeHelper.sleep(2.5)
-    allcfs.crazyflies[0].goTo([-1.5, 0., 1.], 0.0, 5.0)
-    timeHelper.sleep(6.0)
+    allcfs.crazyflies[0].goTo([-2.5, 0., 1.], 0.0, 10.0)
+    timeHelper.sleep(10.0)
     allcfs.land(targetHeight=0.04, duration=1.0+Z)
 
 
