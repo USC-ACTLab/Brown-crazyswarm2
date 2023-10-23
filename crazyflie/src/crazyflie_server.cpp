@@ -124,7 +124,6 @@ public:
     , node_(node)
     , tf_broadcaster_(node)
   {
-    RCLCPP_INFO(logger_, "Beginning Connection...");
     auto sub_opt_cf_cmd = rclcpp::SubscriptionOptions();
     sub_opt_cf_cmd.callback_group = callback_group_cf_cmd;
 
@@ -778,6 +777,7 @@ private:
   // multithreading
   rclcpp::CallbackGroup::SharedPtr callback_group_cf_;
   rclcpp::TimerBase::SharedPtr spin_timer_;
+  
 };
 
 class CrazyflieServer : public rclcpp::Node
