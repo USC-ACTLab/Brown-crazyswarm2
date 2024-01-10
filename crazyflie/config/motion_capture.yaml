@@ -2,8 +2,8 @@
   ros__parameters:
     type: "vicon"
     hostname: "169.254.217.218"
-    mode: "libRigidBodyTracker" # one of motionCapture,libRigidBodyTracker
-
+    # mode: "libRigidBodyTracker" # one of motionCapture,libRigidBodyTracker
+    mode: "libRigidBodyTracker"
     topics:
       poses:
         qos:
@@ -85,9 +85,9 @@
       painter_frame:
         offset: [0.0, 0.0, 0.0]
         points:
-          p0: [0.0694, -0.0474, 0.052]
-          p1: [-0.072, 0.0085, 0.091]
-          p2: [-0.0048, 0.0056, 0.091]
+          p0: [0.093, 0.008, 0.093]
+          p1: [0.072, -0.041, 0.053]
+          p2: [0.026, 0.008, 0.091]
           p3: [-0.053, 0.0575, 0.052]
 
 

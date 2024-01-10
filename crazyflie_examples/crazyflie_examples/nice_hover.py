@@ -16,10 +16,10 @@ def main():
     timeHelper.sleep(1.5+Z)
     for cf in allcfs.crazyflies:
         pos = np.array(cf.initialPosition) + np.array([0, 0, Z])
-        cf.goTo(pos, 0., 1)
+        cf.goTo(pos, 0., 5)
  
     
-    timeHelper.sleep(4.0)
+    timeHelper.sleep(5.5)
 
     allcfs.land(targetHeight=0.04, duration=1.0+Z)
     timeHelper.sleep(1.5+Z)
