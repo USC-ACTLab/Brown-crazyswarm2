@@ -6,6 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
+        - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz_common/Selection
@@ -51,8 +54,10 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
-        wand:
+        All Enabled: false
+        cf33:
+          Value: true
+        pete:
           Value: true
         world:
           Value: true
@@ -63,7 +68,9 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
-          wand:
+          cf33:
+            {}
+          pete:
             {}
       Update Interval: 0
       Value: true
@@ -113,7 +120,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 4.256967067718506
+      Distance: 11.772972106933594
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -128,10 +135,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6353980898857117
+      Pitch: 0.770397961139679
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.9485704898834229
+      Yaw: 4.333576202392578
     Saved: ~
 Window Geometry:
   Displays:
@@ -149,5 +156,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 89
-  Y: 197
+  X: 160
+  Y: 105

@@ -13,9 +13,17 @@ def main():
     timeHelper = swarm.timeHelper
     cf = swarm.allcfs.crazyflies[0]
 
-    cf.takeoff(targetHeight=0.5, duration=TAKEOFF_DURATION)
+    cf.takeoff(targetHeight=1.0, duration=TAKEOFF_DURATION)
     timeHelper.sleep(TAKEOFF_DURATION + HOVER_DURATION)
-    cf.land(targetHeight=0.0, duration=2.5)
+    # cf.goTo((0.5, 0.0, 1.0), 0, 3)
+    # timeHelper.sleep(3)
+    for i in range(100, 45, -1):
+        print(i)
+        cf.setParam("servo.servoAngle", i)
+        timeHelper.sleep(0.5)
+    # cf.goTo((0.0, 0.0, 1.0), 0.0, 3)
+    # timeHelper.sleep(3.5)
+    cf.land(targetHeight=0.35, duration=2.5)
     timeHelper.sleep(TAKEOFF_DURATION)
     # save the name based on test specs
     # pickle.dump(cf.poses, open("single_cf.p","wb"))

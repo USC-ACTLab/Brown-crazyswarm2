@@ -8,7 +8,7 @@
       query_all_values_on_connect: False
     # simulation related
     sim:
-      max_dt: 0.1 #0.1              # artificially limit the step() function (set to 0 to disable)
+      max_dt: 0.100 #0.1              # artificially limit the step() function (set to 0 to disable)
       backend: none                 # see backend folder for a list 
       visualizations:             # see visualization folder for a list
         rviz:
