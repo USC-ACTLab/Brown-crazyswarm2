@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LogBlock.msg"
   "msg/Position.msg"
   "msg/TrajectoryPolynomialPiece.msg"
+  "msg/TrajectoryBezierPiece.msg"
   "msg/VelocityWorld.msg"
   "srv/GoTo.srv"
   "srv/Land.srv"
@@ -34,6 +35,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/Takeoff.srv"
   "srv/UpdateParams.srv"
   "srv/UploadTrajectory.srv"
+  "srv/UploadBezierTrajectory.srv"
   "srv/RemoveLogging.srv"
   "srv/AddLogging.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs 

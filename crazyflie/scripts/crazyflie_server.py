@@ -19,10 +19,14 @@ import time
 import cflib.crtp
 from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
+from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import CompressedSegment
+from cflib.crazyflie.mem import CompressedStart
 from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.high_level_commander import HighLevelCommander
 
 from crazyflie_interfaces.srv import Takeoff, Land, GoTo, RemoveLogging, AddLogging
-from crazyflie_interfaces.srv import UploadTrajectory, StartTrajectory, NotifySetpointsStop
+from crazyflie_interfaces.srv import UploadTrajectory, StartTrajectory, NotifySetpointsStop, UploadBezierTrajectory
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult, ParameterType
 from crazyflie_interfaces.msg import Hover
 from crazyflie_interfaces.msg import LogDataGeneric
@@ -205,7 +209,7 @@ class CrazyflieServer(Node):
             self.get_logger().info("Check if you got the right URIs, if they are turned on" +
                                    " or if your script have proper access to a Crazyradio PA")
             exit()
-        
+
         # Create services for the entire swarm and each individual crazyflie
         self.create_service(Empty, "all/emergency", self._emergency_callback)
         self.create_service(Takeoff, "all/takeoff", self._takeoff_callback)
@@ -236,6 +240,9 @@ class CrazyflieServer(Node):
                 UploadTrajectory, name + "/upload_trajectory", partial(self._upload_trajectory_callback, uri=uri) 
             )
             self.create_service(
+                UploadBezierTrajectory, name + "/upload_bezier_trajectory", partial(self._upload_bezier_trajectory_callback, uri=uri)
+            )
+            self.create_service(
                 NotifySetpointsStop, name + "/notify_setpoints_stop", partial(self._notify_setpoints_stop_callback, uri=uri) 
             )
             self.create_subscription(
@@ -261,7 +268,7 @@ class CrazyflieServer(Node):
         """
         cf_name = self.cf_dict[link_uri]
         cf_type = self.type_dict[link_uri]
-        
+
         logging_enabled = False
         logging_freq = 10
         try:
@@ -354,7 +361,7 @@ class CrazyflieServer(Node):
                 if cf_handle.logging[prefix + "_logging_enabled"] and cf_handle.logging["enabled"]:
                     callback_fnc = self.default_log_fnc[prefix]
                     self._init_default_logging(prefix, link_uri, callback_fnc)
-            
+
             # Start logging for costum logging blocks
             cf_handle.l_toc = cf.log.toc.toc
             if len(cf_handle.logging["custom_log_groups"]) != 0 and cf_handle.logging["enabled"]:
@@ -410,7 +417,7 @@ class CrazyflieServer(Node):
         except AttributeError:
             self.get_logger().info(
                 f'{link_uri}: Could not add log config, bad configuration.')
-    
+
     def _log_scan_data_callback(self, timestamp, data, logconf, uri):
         """
         Once multiranger range is retrieved from the Crazyflie, 
@@ -570,7 +577,7 @@ class CrazyflieServer(Node):
                 for param in sorted(p_toc[group].keys()):
                     name = group + "." + param
 
-                    # Check the parameter type 
+                    # Check the parameter type
                     elem = p_toc[group][param]
                     type_cf_param = elem.ctype
                     parameter_descriptor = ParameterDescriptor(type=cf_log_to_ros_param[type_cf_param])
@@ -680,9 +687,9 @@ class CrazyflieServer(Node):
                     except Exception as e:
                         self.get_logger().info(str(e))
                         return SetParametersResult(successful=False)
-                    
+
         return SetParametersResult(successful=False)
-    
+
     def _emergency_callback(self, request, response, uri="all"):
         if uri == "all":
             for link_uri in self.uris:
@@ -791,11 +798,75 @@ class CrazyflieServer(Node):
     def _upload_trajectory_callback(self, request, response, uri="all"):
         self.get_logger().info("Notify trajectory not yet implemented")
         return response
-    
+
+    def _upload_bezier_trajectory_callback(self, request, response, uri="all"):
+        id = request.trajectory_id
+        offset = request.piece_offset
+        length = len(request.pieces)
+        total_duration = 0
+
+        self.get_logger().info(
+            "upload_trajectory(id=%d, offset=%d, length=%d)" % (id, offset, length)
+        )
+        
+
+        # create the trajectories
+        # example from cflib
+        a = 0.9
+        b = 0.5
+        c = 0.5
+        trajectory = [
+            CompressedStart(0.0, 0.0, 0.0, 0.0),
+            CompressedSegment(2.0, [0.0, 1.0, 1.0], [0.0, a, 0.0], [], []),
+            CompressedSegment(2.0, [1.0, b, 0.0], [-a, -c, 0.0], [], []),
+            CompressedSegment(2.0, [-b, -1.0, -1.0], [c, a, 0.0], [], []),
+            CompressedSegment(2.0, [-1.0, 0.0, 0.0], [-a, 0.0, 0.0], [], []),
+        ]
+        
+        trajectory = []
+        trajectory.append(CompressedStart(0.0, 0.0, 0.0, 0.0))
+        for i in range(length):
+            piece = request.pieces[i]
+            duration = float(piece.duration.sec) + \
+                float(piece.duration.nanosec)/1e9
+            p = CompressedSegment(duration, piece.bezier_control_pts_x, piece.bezier_control_pts_y, piece.bezier_control_pts_z, piece.bezier_control_pts_yaw)
+            trajectory.append(p)
+            total_duration += duration            
+        
+        if uri == "all":
+            upload_success_all = True
+            for link_uri in self.uris:
+                trajectory_mem = self.swarm._cfs[link_uri].cf.mem.get_mems(
+                    MemoryElement.TYPE_TRAJ)[id]
+                trajectory_mem.trajectory = trajectory
+                upload_result = trajectory_mem.write_data_sync()
+                if not upload_result:
+                    self.get_logger().info(f"[{self.cf_dict[uri]}] Upload bezier trajectory failed")
+                    upload_success_all = False
+                else:
+                    self.swarm._cfs[link_uri].cf.high_level_commander.define_trajectory(
+                        id, offset, len(trajectory), type=HighLevelCommander.TRAJECTORY_TYPE_POLY4D_COMPRESSED)
+            if upload_success_all is False:
+                response.success = False
+                return response
+        else:
+            trajectory_mem = self.swarm._cfs[uri].cf.mem.get_mems(
+                MemoryElement.TYPE_TRAJ)[id]
+            trajectory_mem.trajectory = trajectory
+            upload_result = trajectory_mem.write_data_sync()
+            if not upload_result:
+                self.get_logger().info(f"[{self.cf_dict[uri]}] Upload bezier trajectory failed")
+                response.success = False
+                return response
+            self.swarm._cfs[uri].cf.high_level_commander.define_trajectory(
+                id, offset, len(trajectory), type=HighLevelCommander.TRAJECTORY_TYPE_POLY4D_COMPRESSED)
+
+        return response
+
     def _start_trajectory_callback(self, request, response, uri="all"):
         self.get_logger().info("Start trajectory not yet implemented")
         return response
-    
+
     def _poses_changed(self, msg):
         """
         Topic update callback to the motion capture lib's
@@ -813,14 +884,13 @@ class CrazyflieServer(Node):
 
             if name in self.uri_dict.keys():
                 uri = self.uri_dict[name]
-                #self.get_logger().info(f"{uri}: send extpos {x}, {y}, {z} to {name}")
+                # self.get_logger().info(f"{uri}: send extpos {x}, {y}, {z} to {name}")
                 if isnan(quat.x):
                     self.swarm._cfs[uri].cf.extpos.send_extpos(
                         x, y, z)
                 else:
                     self.swarm._cfs[uri].cf.extpos.send_extpose(
                         x, y, z, quat.x, quat.y, quat.z, quat.w)
-
 
     def _cmd_vel_legacy_changed(self, msg, uri=""):
         """
@@ -914,7 +984,7 @@ class CrazyflieServer(Node):
                     lg_custom.add_variable(log_name)
                 self.swarm._cfs[uri].logging["custom_log_publisher"][topic_name] = self.create_publisher(
                     LogDataGeneric, self.cf_dict[uri] + "/" + topic_name, 10)
-                
+
                 self.swarm._cfs[uri].cf.log.add_config(lg_custom)
 
                 lg_custom.data_received_cb.add_callback(
@@ -944,7 +1014,7 @@ class CrazyflieServer(Node):
 
         response.success = True
         return response
-        
+
 
 def main(args=None):
 

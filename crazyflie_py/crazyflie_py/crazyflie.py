@@ -34,11 +34,13 @@ from crazyflie_interfaces.srv import (
     Land,
     GoTo,
     UploadTrajectory,
+    UploadBezierTrajectory,
     StartTrajectory,
     NotifySetpointsStop,
 )
 from crazyflie_interfaces.msg import (
     TrajectoryPolynomialPiece,
+    TrajectoryBezierPiece,
     FullState,
     Position,
     VelocityWorld,
@@ -142,6 +144,10 @@ class Crazyflie:
             UploadTrajectory, prefix + "/upload_trajectory"
         )
         self.uploadTrajectoryService.wait_for_service()
+        self.uploadBezierTrajectoryService = node.create_client(
+            UploadBezierTrajectory, prefix + "/upload_bezier_trajectory"
+        )
+        self.uploadBezierTrajectoryService.wait_for_service()
         self.startTrajectoryService = node.create_client(
             StartTrajectory, prefix + "/start_trajectory"
         )
@@ -455,6 +461,31 @@ class Crazyflie:
         req.piece_offset = pieceOffset
         req.pieces = pieces
         self.uploadTrajectoryService.call_async(req)
+        
+    def uploadBezierTrajectory(self, trajectoryId, pieceOffset, trajectory):
+        """_summary_
+
+        Args:
+            trajectoryId (_type_): _description_
+            pieceOffset (_type_): _description_
+            trajectory (_type_): _description_
+        """
+        pieces: list[TrajectoryBezierPiece] = []
+        
+        for traj in trajectory:
+            piece = TrajectoryBezierPiece()
+            piece.duration = rclpy.duration.Duration(seconds=traj.duration).to_msg()
+            piece.bezier_control_pts_x = traj.x.tolist()
+            piece.bezier_control_pts_y = traj.y.tolist()
+            piece.bezier_control_pts_z = traj.z.tolist()
+            piece.bezier_control_pts_yaw = traj.yaw.tolist()
+            pieces.append(piece)        
+        
+        req = UploadBezierTrajectory.Request()
+        req.trajectory_id = trajectoryId
+        req.piece_offset = pieceOffset
+        req.pieces = pieces
+        self.uploadBezierTrajectoryService.call_async(req)
 
     def startTrajectory(
         self, trajectoryId, timescale=1.0, reverse=False, relative=True, groupMask=0
