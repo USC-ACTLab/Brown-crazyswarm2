@@ -4,7 +4,6 @@ import numpy as np
 from pathlib import Path
 
 from crazyflie_py import *
-from crazyflie_py.crazyflie_py.crazyswarm_py import Crazyswarm
 
 
 class BezierTrajectoryPiece:
