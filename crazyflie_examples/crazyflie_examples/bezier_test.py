@@ -11,6 +11,7 @@ class BezierTrajectoryPiece:
         control_points = np.array(bezier_curve["control_points"])
 
         self.duration = bezier_curve["parameters"][0]
+        print(self.duration)
         self.x = control_points[:, 0]
         self.y = control_points[:, 1]
         self.z = control_points[:, 2]
@@ -53,7 +54,7 @@ def main():
         timeHelper.sleep(4.5)
 
         allcfs.startTrajectory(0, timescale=TIMESCALE)
-        timeHelper.sleep(traj.duration * TIMESCALE + 2.0)
+        timeHelper.sleep(10 + 2.0)
 
         timeHelper.sleep(4.5)
         allcfs.land(targetHeight=0.0, duration=2.0)
