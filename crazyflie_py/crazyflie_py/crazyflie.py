@@ -461,26 +461,29 @@ class Crazyflie:
         req.piece_offset = pieceOffset
         req.pieces = pieces
         self.uploadTrajectoryService.call_async(req)
-        
+
     def uploadBezierTrajectory(self, trajectoryId, pieceOffset, trajectory):
-        """_summary_
+        """Uploads a piecewise Bézier trajectory for later execution.
+
+        See bezier_trajectory.py for more information about piecewise Bézier
+        trajectories.
 
         Args:
-            trajectoryId (_type_): _description_
-            pieceOffset (_type_): _description_
-            trajectory (_type_): _description_
+            trajectoryId (int): ID number of this trajectory.
+            pieceOffset (int):
+            trajectory (:obj:`crazyflie_py.bezier_trajectory.BezierTrajectory`): Trajectory object.
         """
-        pieces: list[TrajectoryBezierPiece] = []
-        
-        for traj in trajectory:
+        pieces = []    
+
+        for curve in trajectory.curve_list:
             piece = TrajectoryBezierPiece()
-            piece.duration = rclpy.duration.Duration(seconds=traj.duration).to_msg()
-            piece.bezier_control_pts_x = traj.x.tolist()
-            piece.bezier_control_pts_y = traj.y.tolist()
-            piece.bezier_control_pts_z = traj.z.tolist()
-            piece.bezier_control_pts_yaw = traj.yaw.tolist()
-            pieces.append(piece)        
-        
+            piece.duration = rclpy.duration.Duration(seconds=curve.duration).to_msg()
+            piece.bezier_control_pts_x = curve.ctrl_pts_x.tolist()
+            piece.bezier_control_pts_y = curve.ctrl_pts_y.tolist()
+            piece.bezier_control_pts_z = curve.ctrl_pts_z.tolist()
+            piece.bezier_control_pts_yaw = curve.ctrl_pts_yaw.tolist()
+            pieces.append(piece)
+
         req = UploadBezierTrajectory.Request()
         req.trajectory_id = trajectoryId
         req.piece_offset = pieceOffset

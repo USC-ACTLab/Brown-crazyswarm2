@@ -62,6 +62,7 @@ cf_log_to_ros_param = {
     "double": ParameterType.PARAMETER_DOUBLE,
 }
 
+
 class CrazyflieServer(Node):
     def __init__(self):
         super().__init__(
@@ -78,21 +79,43 @@ class CrazyflieServer(Node):
         self.cf_dict = {"all": "all"}
         self.uri_dict = {}
         self.type_dict = {}
-        
+
         # Assign default topic types, variables and callbacks
-        self.default_log_type = {"pose": PoseStamped,
-                                "scan": LaserScan,
-                                "odom": Odometry}
-        self.default_log_vars = {"pose": ['stateEstimate.x', 'stateEstimate.y', 'stateEstimate.z',
-                                         'stabilizer.roll', 'stabilizer.pitch', 'stabilizer.yaw'],
-                                "scan": ['range.front', 'range.left', 'range.back', 'range.right'],
-                                "odom": ['stateEstimate.x', 'stateEstimate.y', 'stateEstimate.z',
-                                         'stabilizer.yaw', 'stabilizer.roll', 'stabilizer.pitch',
-                                         'kalman.statePX', 'kalman.statePY', 'kalman.statePZ',
-                                         'gyro.z', 'gyro.x', 'gyro.y']}
-        self.default_log_fnc = {"pose": self._log_pose_data_callback,
-                               "scan": self._log_scan_data_callback,
-                               "odom": self._log_odom_data_callback}
+        self.default_log_type = {
+            "pose": PoseStamped,
+            "scan": LaserScan,
+            "odom": Odometry,
+        }
+        self.default_log_vars = {
+            "pose": [
+                "stateEstimate.x",
+                "stateEstimate.y",
+                "stateEstimate.z",
+                "stabilizer.roll",
+                "stabilizer.pitch",
+                "stabilizer.yaw",
+            ],
+            "scan": ["range.front", "range.left", "range.back", "range.right"],
+            "odom": [
+                "stateEstimate.x",
+                "stateEstimate.y",
+                "stateEstimate.z",
+                "stabilizer.yaw",
+                "stabilizer.roll",
+                "stabilizer.pitch",
+                "kalman.statePX",
+                "kalman.statePY",
+                "kalman.statePZ",
+                "gyro.z",
+                "gyro.x",
+                "gyro.y",
+            ],
+        }
+        self.default_log_fnc = {
+            "pose": self._log_pose_data_callback,
+            "scan": self._log_scan_data_callback,
+            "odom": self._log_odom_data_callback,
+        }
 
         self.world_tf_name = "world"
         try:
@@ -109,7 +132,9 @@ class CrazyflieServer(Node):
             if robot_data[crazyflie]["enabled"]:
                 type_cf = robot_data[crazyflie]["type"]
                 # do not include virtual objects
-                connection = self._ros_parameters["robot_types"][type_cf].get("connection", "crazyflie")
+                connection = self._ros_parameters["robot_types"][type_cf].get(
+                    "connection", "crazyflie"
+                )
                 if connection == "crazyflie":
                     uri = robot_data[crazyflie]["uri"]
                     self.uris.append(uri)
@@ -121,7 +146,7 @@ class CrazyflieServer(Node):
         factory = CachedCfFactory(rw_cache="./cache")
         self.swarm = Swarm(self.uris, factory=factory)
         self.swarm.fully_connected_crazyflie_cnt = 0
-        
+
         # Initialize logging, services and parameters for each crazyflie
         for link_uri in self.uris:
 
@@ -129,8 +154,7 @@ class CrazyflieServer(Node):
             self.swarm._cfs[link_uri].cf.fully_connected.add_callback(
                 self._fully_connected
             )
-            self.swarm._cfs[link_uri].cf.disconnected.add_callback(
-                self._disconnected)
+            self.swarm._cfs[link_uri].cf.disconnected.add_callback(self._disconnected)
             self.swarm._cfs[link_uri].cf.connection_failed.add_callback(
                 self._connection_failed
             )
@@ -143,15 +167,21 @@ class CrazyflieServer(Node):
             # check if logging is enabled at startup
             logging_enabled = False
             try:
-                logging_enabled = self._ros_parameters["all"]["firmware_logging"]["enabled"]
+                logging_enabled = self._ros_parameters["all"]["firmware_logging"][
+                    "enabled"
+                ]
             except KeyError:
                 pass
             try:
-                logging_enabled = self._ros_parameters["robot_types"][cf_type]["firmware_logging"]["enabled"]
+                logging_enabled = self._ros_parameters["robot_types"][cf_type][
+                    "firmware_logging"
+                ]["enabled"]
             except KeyError:
                 pass
             try:
-                logging_enabled = self._ros_parameters["robots"][cf_name]["firmware_logging"]["enabled"]
+                logging_enabled = self._ros_parameters["robots"][cf_name][
+                    "firmware_logging"
+                ]["enabled"]
             except KeyError:
                 pass
 
@@ -162,26 +192,36 @@ class CrazyflieServer(Node):
                 prefix = default_log_name
                 topic_type = self.default_log_type[default_log_name]
                 list_logvar = self.default_log_vars[default_log_name]
-                self._init_default_logblocks(prefix, link_uri, list_logvar, logging_enabled, topic_type)
+                self._init_default_logblocks(
+                    prefix, link_uri, list_logvar, logging_enabled, topic_type
+                )
 
             # Check for any custom_log topics
             custom_logging_enabled = False
             custom_log_topics = {}
 
             try:
-                custom_log_topics = self._ros_parameters['all']["firmware_logging"]["custom_topics"]
+                custom_log_topics = self._ros_parameters["all"]["firmware_logging"][
+                    "custom_topics"
+                ]
                 custom_logging_enabled = True
             except KeyError:
                 pass
             try:
                 custom_log_topics.update(
-                    self._ros_parameters['robot_types'][cf_type]["firmware_logging"]["custom_topics"])
+                    self._ros_parameters["robot_types"][cf_type]["firmware_logging"][
+                        "custom_topics"
+                    ]
+                )
                 custom_logging_enabled = True
             except KeyError:
                 pass
             try:
                 custom_log_topics.update(
-                    self._ros_parameters['robots'][cf_name]["firmware_logging"]["custom_topics"])
+                    self._ros_parameters["robots"][cf_name]["firmware_logging"][
+                        "custom_topics"
+                    ]
+                )
                 custom_logging_enabled = True
             except KeyError:
                 pass
@@ -195,17 +235,26 @@ class CrazyflieServer(Node):
                 for log_group_name in custom_log_topics:
                     frequency = custom_log_topics[log_group_name]["frequency"]
                     lg_custom = LogConfig(
-                        name=log_group_name, period_in_ms=1000 / frequency)
+                        name=log_group_name, period_in_ms=1000 / frequency
+                    )
                     for log_name in custom_log_topics[log_group_name]["vars"]:
                         lg_custom.add_variable(log_name)
                         # Don't know which type this needs to be in until we get the full toc
-                    self.swarm._cfs[link_uri].logging["custom_log_publisher"][log_group_name] = "empty publisher"
-                    self.swarm._cfs[link_uri].logging["custom_log_groups"][log_group_name] = {
-                    }
-                    self.swarm._cfs[link_uri].logging["custom_log_groups"][log_group_name]["log_config"] = lg_custom
-                    self.swarm._cfs[link_uri].logging["custom_log_groups"][log_group_name]["vars"] = custom_log_topics[log_group_name]["vars"]
-                    self.swarm._cfs[link_uri].logging["custom_log_groups"][log_group_name][
-                        "frequency"] = custom_log_topics[log_group_name]["frequency"]
+                    self.swarm._cfs[link_uri].logging["custom_log_publisher"][
+                        log_group_name
+                    ] = "empty publisher"
+                    self.swarm._cfs[link_uri].logging["custom_log_groups"][
+                        log_group_name
+                    ] = {}
+                    self.swarm._cfs[link_uri].logging["custom_log_groups"][
+                        log_group_name
+                    ]["log_config"] = lg_custom
+                    self.swarm._cfs[link_uri].logging["custom_log_groups"][
+                        log_group_name
+                    ]["vars"] = custom_log_topics[log_group_name]["vars"]
+                    self.swarm._cfs[link_uri].logging["custom_log_groups"][
+                        log_group_name
+                    ]["frequency"] = custom_log_topics[log_group_name]["frequency"]
 
         # Now all crazyflies are initialized, open links!
         try:
@@ -213,8 +262,10 @@ class CrazyflieServer(Node):
         except Exception as e:
             # Close node if one of the Crazyflies can not be found
             self.get_logger().info("Error!: One or more Crazyflies can not be found. ")
-            self.get_logger().info("Check if you got the right URIs, if they are turned on" +
-                                   " or if your script have proper access to a Crazyradio PA")
+            self.get_logger().info(
+                "Check if you got the right URIs, if they are turned on"
+                + " or if your script have proper access to a Crazyradio PA"
+            )
             exit()
 
         for uri in self.cf_dict:
@@ -296,7 +347,9 @@ class CrazyflieServer(Node):
         # This is the last service to announce and can be used to check if the server is fully available
         self.create_service(Empty, "all/emergency", self._emergency_callback)
 
-    def _init_default_logblocks(self, prefix, link_uri, list_logvar, global_logging_enabled, topic_type):
+    def _init_default_logblocks(
+        self, prefix, link_uri, list_logvar, global_logging_enabled, topic_type
+    ):
         """
         Prepare default logblocks as defined in crazyflies.yaml
         """
@@ -306,26 +359,28 @@ class CrazyflieServer(Node):
         logging_enabled = False
         logging_freq = 10
         try:
-            logging_freq = self._ros_parameters['all'][
-                "firmware_logging"]["default_topics"][prefix]["frequency"]
+            logging_freq = self._ros_parameters["all"]["firmware_logging"][
+                "default_topics"
+            ][prefix]["frequency"]
             logging_enabled = True
         except KeyError:
             pass
         try:
-            logging_freq = self._ros_parameters['robot_types'][cf_type][
-                "firmware_logging"]["default_topics"][prefix]["frequency"]
+            logging_freq = self._ros_parameters["robot_types"][cf_type][
+                "firmware_logging"
+            ]["default_topics"][prefix]["frequency"]
             logging_enabled = True
         except KeyError:
             pass
         try:
-            logging_freq = self._ros_parameters['robots'][cf_name][
-                "firmware_logging"]["default_topics"][prefix]["frequency"]
+            logging_freq = self._ros_parameters["robots"][cf_name]["firmware_logging"][
+                "default_topics"
+            ][prefix]["frequency"]
             logging_enabled = True
         except KeyError:
             pass
 
-        lg = LogConfig(
-            name=prefix, period_in_ms=1000 / logging_freq)
+        lg = LogConfig(name=prefix, period_in_ms=1000 / logging_freq)
         for logvar in list_logvar:
             if prefix == "odom":
                 lg.add_variable(logvar, "FP16")
@@ -336,8 +391,11 @@ class CrazyflieServer(Node):
         self.swarm._cfs[link_uri].logging[prefix + "_logging_freq"] = logging_freq
         self.swarm._cfs[link_uri].logging[prefix + "_log_config"] = lg
         if logging_enabled and global_logging_enabled:
-            self.swarm._cfs[link_uri].logging[prefix + "_publisher"] = self.create_publisher(
-                topic_type, self.cf_dict[link_uri] + "/" + prefix, 10)
+            self.swarm._cfs[link_uri].logging[prefix + "_publisher"] = (
+                self.create_publisher(
+                    topic_type, self.cf_dict[link_uri] + "/" + prefix, 10
+                )
+            )
         else:
             self.swarm._cfs[link_uri].logging[prefix + "_publisher"] = "empty"
 
@@ -348,8 +406,8 @@ class CrazyflieServer(Node):
         tree = {}
         for item in param_ros:
             t = tree
-            for part in item.split('.'):
-                if part == item.split('.')[-1]:
+            for part in item.split("."):
+                if part == item.split(".")[-1]:
                     t = t.setdefault(part, param_ros[item].value)
                 else:
                     t = t.setdefault(part, {})
@@ -945,15 +1003,17 @@ class CrazyflieServer(Node):
     def _upload_bezier_trajectory_callback(self, request, response, uri="all"):
         id = request.trajectory_id
         offset = request.piece_offset
-        length = len(request.pieces)
+        num_pieces = len(request.pieces)
         total_duration = 0
 
         self.get_logger().info(
-            "upload_trajectory(id=%d, offset=%d, length=%d)" % (id, offset, length)
+            "upload_trajectory(id=%d, offset=%d, num_pieces=%d)"
+            % (id, offset, num_pieces)
         )
 
         # create the trajectories
         # example from cflib
+        # TODO: test if yaw is 0 is the same as empty
         a = 0.9
         b = 0.5
         c = 0.5
@@ -966,16 +1026,20 @@ class CrazyflieServer(Node):
         ]
 
         # trajectory = []
-        # trajectory.append(CompressedStart(0.0, 0.0, 0.0, 0.0))
-        # for i in range(length):
+        # start_x = request.pieces[0].bezier_control_pts_x[0]
+        # start_y = request.pieces[0].bezier_control_pts_y[0]
+        # start_z = request.pieces[0].bezier_control_pts_z[0]
+        # start_yaw = 0.0
+        # trajectory.append(CompressedStart(start_x, start_y, start_z, start_yaw))
+        # for i in range(num_pieces):
         #     piece = request.pieces[i]
         #     duration = float(piece.duration.sec) + float(piece.duration.nanosec) / 1e9
         #     p = CompressedSegment(
         #         duration,
-        #         piece.bezier_control_pts_x,
-        #         piece.bezier_control_pts_y,
-        #         piece.bezier_control_pts_z,
-        #         piece.bezier_control_pts_yaw,
+        #         piece.bezier_control_pts_x[1:],
+        #         piece.bezier_control_pts_y[1:],
+        #         piece.bezier_control_pts_z[1:],
+        #         piece.bezier_control_pts_yaw[1:],
         #     )
         #     trajectory.append(p)
         #     total_duration += duration
@@ -994,9 +1058,6 @@ class CrazyflieServer(Node):
                     )
                     upload_success_all = False
                 else:
-                    self.get_logger().info(
-                        f"[{self.cf_dict[uri]}] Upload bezier trajectory success"
-                    )
                     self.swarm._cfs[link_uri].cf.high_level_commander.define_trajectory(
                         id,
                         offset,
