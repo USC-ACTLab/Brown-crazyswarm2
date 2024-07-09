@@ -15,7 +15,7 @@ class BezierCurve(bezier.Curve):
         self,
         nodes,
         degree,
-        ctrl_pts_yaw: np.ndarray = [],
+        ctrl_pts_yaw: np.ndarray = None,
         duration=None,
         *args,
         **kwargs,
@@ -27,7 +27,10 @@ class BezierCurve(bezier.Curve):
         self.ctrl_pts_y = nodes[1]
         if nodes.shape[0] == 3:
             self.ctrl_pts_z = nodes[2]
-        self.ctrl_pts_yaw = ctrl_pts_yaw
+        if ctrl_pts_yaw is None:
+            self.ctrl_pts_yaw = np.zeros_like(self.ctrl_pts_x)
+        else:
+            self.ctrl_pts_yaw = ctrl_pts_yaw
 
     @classmethod
     def from_nodes(cls, nodes: np.ndarray, duration: float = None) -> "BezierCurve":
@@ -314,7 +317,7 @@ if __name__ == "__main__":
     control_pts_list = [control_pts1, control_pts2, control_pts3, control_pts4]
     bezier_traj = BezierTrajectory.from_control_points(control_pts_list)
     # Alternatively, load from json
-    # bezier_traj = BezierTrajectory.from_json(
-    #     "crazyflie_examples/crazyflie_examples/data/figure8_bezier.json"
-    # )
+    bezier_traj = BezierTrajectory.from_json(
+        "crazyflie_examples/crazyflie_examples/data/figure8_bezier.json"
+    )
     bezier_traj.visualize(derivatives=[0], show_plot=True)

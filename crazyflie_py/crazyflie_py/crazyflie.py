@@ -473,7 +473,7 @@ class Crazyflie:
             pieceOffset (int):
             trajectory (:obj:`crazyflie_py.bezier_trajectory.BezierTrajectory`): Trajectory object.
         """
-        pieces = []    
+        pieces = []
 
         for curve in trajectory.curve_list:
             piece = TrajectoryBezierPiece()
@@ -817,7 +817,6 @@ class CrazyflieServer(rclpy.node.Node):
         )
         self.cmdFullStateMsg = FullState()
         self.cmdFullStateMsg.header.frame_id = "/world"
-
         cfnames = []
         for srv_name, srv_types in self.get_service_names_and_types():
             # print("cfname: ", srv_name[1:-17])

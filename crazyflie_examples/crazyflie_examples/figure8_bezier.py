@@ -4,15 +4,22 @@ import numpy as np
 from pathlib import Path
 
 from crazyflie_py import *
+from crazyflie_py.bezier_trajectory import BezierTrajectory
 
 
 def main():
+
+    print(
+        "WARNING: running a script involving Bezier curves. Currently only cflib backend is supported. Please run the server with 'ros2 launch crazyflie launch.py backend:=cflib'."
+    )
+
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
     allcfs = swarm.allcfs
 
-    traj = BezierTrajectory()
-    traj.from_json(Path(__file__).parent / "data/figure8_bezier.json")
+    traj = BezierTrajectory.from_json(
+        Path(__file__).parent / "data/figure8_bezier.json"
+    )
 
     TRIALS = 1
     TIMESCALE = 1.0

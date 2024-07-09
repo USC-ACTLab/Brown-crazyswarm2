@@ -1011,38 +1011,24 @@ class CrazyflieServer(Node):
             % (id, offset, num_pieces)
         )
 
-        # create the trajectories
-        # example from cflib
-        # TODO: test if yaw is 0 is the same as empty
-        a = 0.9
-        b = 0.5
-        c = 0.5
-        trajectory = [
-            CompressedStart(0.0, 0.0, 0.0, 0.0),
-            CompressedSegment(2.0, [0.0, 1.0, 1.0], [0.0, a, 0.0], [], []),
-            CompressedSegment(2.0, [1.0, b, 0.0], [-a, -c, 0.0], [], []),
-            CompressedSegment(2.0, [-b, -1.0, -1.0], [c, a, 0.0], [], []),
-            CompressedSegment(2.0, [-1.0, 0.0, 0.0], [-a, 0.0, 0.0], [], []),
-        ]
-
-        # trajectory = []
-        # start_x = request.pieces[0].bezier_control_pts_x[0]
-        # start_y = request.pieces[0].bezier_control_pts_y[0]
-        # start_z = request.pieces[0].bezier_control_pts_z[0]
-        # start_yaw = 0.0
-        # trajectory.append(CompressedStart(start_x, start_y, start_z, start_yaw))
-        # for i in range(num_pieces):
-        #     piece = request.pieces[i]
-        #     duration = float(piece.duration.sec) + float(piece.duration.nanosec) / 1e9
-        #     p = CompressedSegment(
-        #         duration,
-        #         piece.bezier_control_pts_x[1:],
-        #         piece.bezier_control_pts_y[1:],
-        #         piece.bezier_control_pts_z[1:],
-        #         piece.bezier_control_pts_yaw[1:],
-        #     )
-        #     trajectory.append(p)
-        #     total_duration += duration
+        trajectory = []
+        start_x = request.pieces[0].bezier_control_pts_x[0]
+        start_y = request.pieces[0].bezier_control_pts_y[0]
+        start_z = request.pieces[0].bezier_control_pts_z[0]
+        start_yaw = 0.0
+        trajectory.append(CompressedStart(start_x, start_y, start_z, start_yaw))
+        for i in range(num_pieces):
+            piece = request.pieces[i]
+            duration = float(piece.duration.sec) + float(piece.duration.nanosec) / 1e9
+            p = CompressedSegment(
+                duration,
+                piece.bezier_control_pts_x[1:],
+                piece.bezier_control_pts_y[1:],
+                piece.bezier_control_pts_z[1:],
+                piece.bezier_control_pts_yaw[1:],
+            )
+            trajectory.append(p)
+            total_duration += duration
 
         if uri == "all":
             upload_success_all = True
