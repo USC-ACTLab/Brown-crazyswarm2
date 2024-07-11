@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+from crazyflie_py import Crazyswarm
 import numpy as np
-from crazyflie_py import *
 
 
 def main():
-    Z = 1.8
+    Z = 1.0
 
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
@@ -23,5 +23,6 @@ def main():
     timeHelper.sleep(1.5 + Z)
 
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

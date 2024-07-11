@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import defaultdict
 
 # import sys
 # import rospy
@@ -17,32 +18,21 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 
 from collections import defaultdict
 import copy
+
+from crazyflie_interfaces.msg import FullState, Position, Status, TrajectoryPolynomialPiece
+from crazyflie_interfaces.srv import Arm, GoTo, Land, \
+    NotifySetpointsStop, StartTrajectory, Takeoff, UploadTrajectory
+from geometry_msgs.msg import Point
+import numpy as np
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import DescribeParameters, GetParameters, ListParameters, SetParameters
+
 import rclpy
 import rclpy.node
 import rowan
 from std_srvs.srv import Empty
 from geometry_msgs.msg import Point, Twist
-from rcl_interfaces.srv import (
-    GetParameters,
-    SetParameters,
-    ListParameters,
-    DescribeParameters,
-)
-from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
-from crazyflie_interfaces.srv import (
-    Takeoff,
-    Land,
-    GoTo,
-    UploadTrajectory,
-    StartTrajectory,
-    NotifySetpointsStop,
-)
-from crazyflie_interfaces.msg import (
-    TrajectoryPolynomialPiece,
-    FullState,
-    Position,
-    VelocityWorld,
-)
+
 from tf2_msgs.msg import TFMessage
 
 
@@ -55,7 +45,8 @@ def arrayToGeometryPoint(a):
 
 
 class TimeHelper:
-    """Object containing all time-related functionality.
+    """
+    Object containing all time-related functionality.
 
     This class mainly exists to support both real hardware and (potentially
     faster or slower than realtime) simulation with the same script.
@@ -66,6 +57,7 @@ class TimeHelper:
         visualizer: No-op object conforming to the Visualizer API used in
             simulation scripts. Maintains the property that scripts should not
             know/care if they are running in simulation or not.
+
     """
 
     def __init__(self, node):
@@ -76,7 +68,7 @@ class TimeHelper:
         # self.visualizer = visNull.VisNull()
 
     def time(self):
-        """Returns the current time in seconds."""
+        """Return current time in seconds."""
         return self.node.get_clock().now().nanoseconds / 1e9
 
     def sleep(self, duration):
@@ -87,7 +79,7 @@ class TimeHelper:
             rclpy.spin_once(self.node, timeout_sec=0)
 
     def sleepForRate(self, rateHz):
-        """Sleeps so that, if called in a loop, executes at specified rate."""
+        """Sleep so that, if called in a loop, executes at specified rate."""
         # Note: The following ROS 2 construct cannot easily be used, because in ROS 2
         #       there is no implicit threading anymore. Thus, the rosRate.sleep() call
         #       is blocking. Instead, we simulate the rate behavior ourselves.
@@ -103,12 +95,13 @@ class TimeHelper:
         self.nextTime += 1.0 / rateHz
 
     def isShutdown(self):
-        """Returns true if the script should abort, e.g. from Ctrl-C."""
+        """Return True if the script should abort, e.g. from Ctrl-C."""
         return not rclpy.ok()
 
 
 class Crazyflie:
-    """Object representing a single robot.
+    """
+    Object representing a single robot.
 
     The bulk of the module's functionality is contained in this class.
     """
@@ -117,43 +110,46 @@ class Crazyflie:
         """Constructor.
 
         Args:
-            cfname (string): Name of the robot names[ace]
+            node: ROS node reference.
+            cfname (string): Name of the robot names[ace].
+            paramTypeDict: dictionary of the parameter types.
+
         """
-        prefix = "/" + cfname
+        prefix = '/' + cfname
         self.prefix = prefix
         self.node = node
         self.index = index
         cb_group = ReentrantCallbackGroup()
         # self.tf = tf
 
-        # rospy.wait_for_service(prefix + "/set_group_mask")
-        # self.setGroupMaskService = rospy.ServiceProxy(prefix + "/set_group_mask", SetGroupMask)
-        self.emergencyService = node.create_client(Empty, prefix + "/emergency")
+        self.emergencyService = node.create_client(Empty, prefix + '/emergency')
         self.emergencyService.wait_for_service()
-        self.takeoffService = node.create_client(Takeoff, prefix + "/takeoff")
+        self.takeoffService = node.create_client(Takeoff, prefix + '/takeoff')
         self.takeoffService.wait_for_service()
-        self.landService = node.create_client(Land, prefix + "/land")
+        self.landService = node.create_client(Land, prefix + '/land')
         self.landService.wait_for_service()
-        # # rospy.wait_for_service(prefix + "/stop")
-        # # self.stopService = rospy.ServiceProxy(prefix + "/stop", Stop)
-        self.goToService = node.create_client(GoTo, prefix + "/go_to")
+        # # rospy.wait_for_service(prefix + '/stop')
+        # # self.stopService = rospy.ServiceProxy(prefix + '/stop', Stop)
+        self.goToService = node.create_client(GoTo, prefix + '/go_to')
         self.goToService.wait_for_service()
         self.uploadTrajectoryService = node.create_client(
-            UploadTrajectory, prefix + "/upload_trajectory"
-        )
+            UploadTrajectory, prefix + '/upload_trajectory')
         self.uploadTrajectoryService.wait_for_service()
         self.startTrajectoryService = node.create_client(
-            StartTrajectory, prefix + "/start_trajectory"
-        )
+            StartTrajectory, prefix + '/start_trajectory')
         self.startTrajectoryService.wait_for_service()
         self.notifySetpointsStopService = node.create_client(
-            NotifySetpointsStop, prefix + "/notify_setpoints_stop"
-        )
+            NotifySetpointsStop, prefix + '/notify_setpoints_stop')
         self.notifySetpointsStopService.wait_for_service()
+        self.armService = node.create_client(
+            Arm, prefix + '/arm')
+        # self.armService.wait_for_service()
         self.setParamsService = node.create_client(
-            SetParameters, "/crazyflie_server/set_parameters"
-        )
+            SetParameters, '/crazyflie_server/set_parameters')
         self.setParamsService.wait_for_service()
+        self.statusSubscriber = node.create_subscription(
+            Status, f'{self.prefix}/status', self.status_topic_callback, 10)
+        self.status = {}
 
         self.pose_subscriber = node.create_subscription(
             TFMessage, "/tf", self.pose_cb, 1, callback_group=cb_group
@@ -165,16 +161,12 @@ class Crazyflie:
             self.poses = []
 
         # Query some settings
-        getParamsService = node.create_client(
-            GetParameters, "/crazyflie_server/get_parameters"
-        )
-        getParamsService.wait_for_service()
+        self.getParamsService = node.create_client(
+            GetParameters, '/crazyflie_server/get_parameters')
+        self.getParamsService.wait_for_service()
         req = GetParameters.Request()
-        req.names = [
-            "robots.{}.initial_position".format(cfname),
-            "robots.{}.uri".format(cfname),
-        ]
-        future = getParamsService.call_async(req)
+        req.names = ['robots.{}.initial_position'.format(cfname), 'robots.{}.uri'.format(cfname)]
+        future = self.getParamsService.call_async(req)
         while rclpy.ok():
             rclpy.spin_once(node)
             if future.done():
@@ -199,51 +191,58 @@ class Crazyflie:
         self.paramTypeDict = paramTypeDict
 
         self.cmdFullStatePublisher = node.create_publisher(
-            FullState, prefix + "/cmd_full_state", 1
-        )
+            FullState, prefix + '/cmd_full_state', 1)
         self.cmdFullStateMsg = FullState()
-        self.cmdFullStateMsg.header.frame_id = "/world"
+        self.cmdFullStateMsg.header.frame_id = '/world'
 
-        # self.cmdStopPublisher = rospy.Publisher(prefix + "/cmd_stop", std_msgs.msg.Empty, queue_size=1)
+        # self.cmdStopPublisher = rospy.Publisher(
+        #   prefix + '/cmd_stop', std_msgs.msg.Empty, queue_size=1)
 
-        # self.cmdVelPublisher = node.create_publisher(geometry_msgs.msg.Twist, prefix + "/cmd_vel",  1)
+        # self.cmdVelPublisher = rospy.Publisher(
+        #   prefix + '/cmd_vel', geometry_msgs.msg.Twist, queue_size=1)
 
         self.cmdPositionPublisher = node.create_publisher(
-            Position, prefix + "/cmd_position", 1
-        )
+            Position, prefix + '/cmd_position', 1)
         self.cmdPositionMsg = Position()
-        self.cmdPositionMsg.header.frame_id = "/world"
+        self.cmdPositionMsg.header.frame_id = '/world'
 
-        self.cmdVelocityWorldPublisher = node.create_publisher(
-            VelocityWorld, prefix + "/cmd_velocity_world", 1
-        )
-        self.cmdVelocityWorldMsg = VelocityWorld()
-        self.cmdVelocityWorldMsg.header.frame_id = "/world"
-        self.name = cfname
+        # self.cmdVelocityWorldPublisher = rospy.Publisher(
+        #   prefix + '/cmd_velocity_world', VelocityWorld, queue_size=1)
+        # self.cmdVelocityWorldMsg = VelocityWorld()
+        # self.cmdVelocityWorldMsg.header.seq = 0
+        # self.cmdVelocityWorldMsg.header.frame_id = '/world'
 
-    # def setGroupMask(self, groupMask):
-    #     """Sets the group mask bits for this robot.
+    def setGroupMask(self, groupMask):
+        """
+        Set the group mask bits for this robot.
 
-    #     The purpose of groups is to make it possible to trigger an action
-    #     (for example, executing a previously-uploaded trajectory) on a subset
-    #     of all robots without needing to send more than one radio packet.
-    #     This is important to achieve tight, synchronized "choreography".
+        The purpose of groups is to make it possible to trigger an action
+        (for example, executing a previously-uploaded trajectory) on a subset
+        of all robots without needing to send more than one radio packet.
+        This is important to achieve tight, synchronized 'choreography'.
 
-    #     Up to 8 groups may exist, corresponding to bits in the groupMask byte.
-    #     When a broadcast command is triggered on the :obj:`CrazyflieServer` object
-    #     with a groupMask argument, the command only affects those robots whose
-    #     groupMask has a nonzero bitwise-AND with the command's groupMask.
-    #     A command with a groupMask of zero applies to all robots regardless of
-    #     group membership.
+        Up to 8 groups may exist, corresponding to bits in the groupMask byte.
+        When a broadcast command is triggered on the :obj:`CrazyflieServer` object
+        with a groupMask argument, the command only affects those robots whose
+        groupMask has a nonzero bitwise-AND with the command's groupMask.
+        A command with a groupMask of zero applies to all robots regardless of
+        group membership.
 
-    #     Some individual robot (not broadcast) commands also support groupMask,
-    #     but it is not especially useful in that case.
+        Some individual robot (not broadcast) commands also support groupMask,
+        but it is not especially useful in that case.
 
-    #     Args:
-    #         groupMask (int): An 8-bit integer representing this robot's
-    #             membership status in each of the <= 8 possible groups.
-    #     """
-    #     self.setGroupMaskService(groupMask)
+        Args:
+        ----
+            groupMask (int): An 8-bit integer representing this robot's
+                membership status in each of the <= 8 possible groups.
+
+        """
+        # Note that this requires a recent firmware; older firmware versions
+        #      do not have such a parameter.
+        try:
+            self.setParam('hlCommander.groupmask', groupMask)
+        except KeyError:
+            self.node.get_logger().error('setGroupMask: Your firmware is too old - Please update.')
 
     # def enableCollisionAvoidance(self, others, ellipsoidRadii):
     #     """Enables onboard collision avoidance.
@@ -257,7 +256,8 @@ class Crazyflie:
     #             of this list.  With real hardware, this list is **ignored**, and
     #             collision avoidance is checked with all other Crazyflies on the
     #             same radio channel.
-    #         ellipsoidRadii (array-like of float[3]): Radii of collision volume ellipsoid in meters.
+    #         ellipsoidRadii (array-like of float[3]): Radii of collision volume
+    #             ellipsoid in meters.
     #             The Crazyflie's boundary for collision checking is a tall
     #             ellipsoid. This accounts for the downwash effect: Due to the
     #             fast-moving stream of air produced by the rotors, the safe
@@ -273,15 +273,15 @@ class Crazyflie:
     #     # Set radii before enabling to ensure collision avoidance never
     #     # observes a wrong radius value.
     #     self.setParams({
-    #         "colAv/ellipsoidX": float(ellipsoidRadii[0]),
-    #         "colAv/ellipsoidY": float(ellipsoidRadii[1]),
-    #         "colAv/ellipsoidZ": float(ellipsoidRadii[2]),
+    #         'colAv/ellipsoidX': float(ellipsoidRadii[0]),
+    #         'colAv/ellipsoidY': float(ellipsoidRadii[1]),
+    #         'colAv/ellipsoidZ': float(ellipsoidRadii[2]),
     #     })
-    #     self.setParam("colAv/enable", 1)
+    #     self.setParam('colAv/enable', 1)
 
     # def disableCollisionAvoidance(self):
     #     """Disables onboard collision avoidance."""
-    #     self.setParam("colAv/enable", 0)
+    #     self.setParam('colAv/enable', 0)
 
     def pose_cb(self, msg):
         """Update the server's understanding of the poses for each crazyflie
@@ -326,7 +326,8 @@ class Crazyflie:
                 print([pose[0] for pose in self.pose.values()])
 
     def emergency(self):
-        """Emergency stop. Cuts power; causes future commands to be ignored.
+        """
+        Emergency stop. Cuts power; causes future commands to be ignored.
 
         This command is useful if the operator determines that the control
         script is flawed, and that continuing to follow it will cause wrong/
@@ -341,14 +342,17 @@ class Crazyflie:
         self.emergencyService.call_async(req)
 
     def takeoff(self, targetHeight, duration, groupMask=0):
-        """Execute a takeoff - fly straight up, then hover indefinitely.
+        """
+        Execute a takeoff - fly straight up, then hover indefinitely.
 
         Asynchronous command; returns immediately.
 
         Args:
+        ----
             targetHeight (float): The z-coordinate at which to hover.
             duration (float): How long until the height is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         req = Takeoff.Request()
         req.group_mask = groupMask
@@ -357,17 +361,20 @@ class Crazyflie:
         self.takeoffService.call_async(req)
 
     def land(self, targetHeight, duration, groupMask=0):
-        """Execute a landing - fly straight down. User must cut power after.
+        """
+        Execute a landing - fly straight down. User must cut power after.
 
         Asynchronous command; returns immediately.
 
         Args:
+        ----
             targetHeight (float): The z-coordinate at which to land. Meters.
                 Usually should be a few centimeters above the initial position
                 to ensure that the controller does not try to penetrate the
                 floor if the mocap coordinate origin is not perfect.
             duration (float): How long until the height is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         req = Land.Request()
         req.group_mask = groupMask
@@ -388,7 +395,8 @@ class Crazyflie:
     #     self.stopService(groupMask)
 
     def goTo(self, goal, yaw, duration, relative=False, groupMask=0):
-        """Move smoothly to the goal, then hover indefinitely.
+        """
+        Move smoothly to the goal, then hover indefinitely.
 
         Asynchronous command; returns immediately.
 
@@ -419,6 +427,7 @@ class Crazyflie:
                 position is interpreted as absolute coordintates in the global
                 reference frame.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         goal = (float(goal[0]), float(goal[1]), float(goal[2]))
         req = GoTo.Request()
@@ -430,16 +439,19 @@ class Crazyflie:
         self.goToService.call_async(req)
 
     def uploadTrajectory(self, trajectoryId, pieceOffset, trajectory):
-        """Uploads a piecewise polynomial trajectory for later execution.
+        """
+        Upload a piecewise polynomial trajectory for later execution.
 
         See uav_trajectory.py for more information about piecewise polynomial
         trajectories.
 
         Args:
+        ----
             trajectoryId (int): ID number of this trajectory. Multiple
                 trajectories can be uploaded. TODO: what is the maximum ID?
             pieceOffset (int): TODO(whoenig): explain this.
             trajectory (:obj:`pycrazyswarm.uav_trajectory.Trajectory`): Trajectory object.
+
         """
         pieces = []
         for poly in trajectory.polynomials:
@@ -454,16 +466,22 @@ class Crazyflie:
         req.trajectory_id = trajectoryId
         req.piece_offset = pieceOffset
         req.pieces = pieces
-        self.uploadTrajectoryService.call_async(req)
+        future = self.uploadTrajectoryService.call_async(req)
+        while rclpy.ok():
+            rclpy.spin_once(self.node)
+            if future.done():
+                break
 
-    def startTrajectory(
-        self, trajectoryId, timescale=1.0, reverse=False, relative=True, groupMask=0
-    ):
-        """Begins executing a previously uploaded trajectory.
+    def startTrajectory(self, trajectoryId,
+                        timescale=1.0, reverse=False,
+                        relative=True, groupMask=0):
+        """
+        Begin executing a previously uploaded trajectory.
 
         Asynchronous command; returns immediately.
 
         Args:
+        ----
             trajectoryId (int): ID number as given to :meth:`uploadTrajectory()`.
             timescale (float): Scales the trajectory duration by this factor.
                 For example if timescale == 2.0, the trajectory will take twice
@@ -473,6 +491,7 @@ class Crazyflie:
                 is shifted such that it begins at the current position setpoint.
                 This is usually the desired behavior.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         req = StartTrajectory.Request()
         req.group_mask = groupMask
@@ -483,7 +502,8 @@ class Crazyflie:
         self.startTrajectoryService.call_async(req)
 
     def notifySetpointsStop(self, remainValidMillisecs=100, groupMask=0):
-        """Informs that streaming low-level setpoint packets are about to stop.
+        """
+        Informs that streaming low-level setpoint packets are about to stop.
 
         Streaming setpoints are :meth:`cmdVelocityWorld`, :meth:`cmdFullState`,
         and so on. For safety purposes, they normally preempt onboard high-level
@@ -506,11 +526,28 @@ class Crazyflie:
                 streaming setpoint should be followed before reverting to the
                 onboard-determined behavior. May be longer e.g. if one radio
                 is controlling many robots.
+            groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         req = NotifySetpointsStop.Request()
         req.remain_valid_millisecs = remainValidMillisecs
         req.group_mask = groupMask
         self.notifySetpointsStopService.call_async(req)
+
+    def arm(self, arm=True):
+        """
+        Arms the quadrotor.
+
+        For a brushless or Bolt-based drone the motors start spinning and flight
+        is enabled.
+
+        Args:
+            arm (boolean): True if the motors should be armed, False otherwise.
+
+        """
+        req = Arm.Request()
+        req.arm = arm
+        self.armService.call_async(req)
 
     # def position(self):
     #     """Returns the last true position measurement from motion capture.
@@ -524,41 +561,63 @@ class Crazyflie:
     #     Returns:
     #         position (np.array[3]): Current position. Meters.
     #     """
-    #     self.tf.waitForTransform("/world", "/cf" + str(self.id), rospy.Time(0), rospy.Duration(10))
-    #     position, quaternion = self.tf.lookupTransform("/world", "/cf" + str(self.id), rospy.Time(0))
+    #     self.tf.waitForTransform(
+    #       '/world', '/cf' + str(self.id), rospy.Time(0), rospy.Duration(10))
+    #     position, quaternion = self.tf.lookupTransform(
+    #       '/world', '/cf' + str(self.id), rospy.Time(0))
     #     return np.array(position)
 
-    # def getParam(self, name):
-    #     """Returns the current value of the onboard named parameter.
+    def getParam(self, name):
+        """
+        Get the current value of the onboard named parameter.
 
-    #     Parameters are named values of various primitive C types that control
-    #     the firmware's behavior. For more information, see
-    #     https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/userguides/logparam/.
+        Parameters are named values of various primitive C types that control
+        the firmware's behavior. For more information, see
+        https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/userguides/logparam/.
 
-    #     Parameters are read at system startup over the radio and cached.
-    #     The ROS launch file can also be used to set parameter values at startup.
-    #     Subsequent calls to :meth:`setParam()` will update the cached value.
-    #     However, if the parameter changes for any other reason, the cached value
-    #     might become stale. This situation is not common.
+        Parameters are read at system startup over the radio and cached.
+        The ROS launch file can also be used to set parameter values at startup.
+        Subsequent calls to :meth:`setParam()` will update the cached value.
+        However, if the parameter changes for any other reason, the cached value
+        might become stale. This situation is not common.
 
-    #     Args:
-    #         name (str): The parameter's name.
+        Args:
+            name (str): The parameter's name.
 
-    #     Returns:
-    #         value (Any): The parameter's value.
-    #     """
-    #     return rospy.get_param(self.prefix + "/" + name)
+        Returns:
+            value (Any): The parameter's value.
+
+        """
+        param_name = self.prefix[1:] + '.params.' + name
+        req = GetParameters.Request()
+        req.names = [param_name]
+        future = self.getParamsService.call_async(req)
+        rclpy.spin_until_future_complete(self.node, future)
+        param_type = self.paramTypeDict[name]
+        try:
+            if param_type == ParameterType.PARAMETER_INTEGER:
+                param_value = future.result().values[0].integer_value
+            elif param_type == ParameterType.PARAMETER_DOUBLE:
+                param_value = future.result().values[0].double_value
+        except KeyError as e:
+            self.get_logger().warn(f'(crazyflie.py)getParam : keyError raised {e}')
+        except Exception as e:
+            self.get_logger().warn(f'(crazyflie.py)getParam : exception raised {e}')
+
+        return param_value
 
     def setParam(self, name, value):
-        """Changes the value of the given parameter.
+        """
+        Change the value of the given parameter.
 
         See :meth:`getParam()` docs for overview of the parameter system.
 
         Args:
             name (str): The parameter's name.
             value (Any): The parameter's value.
+
         """
-        param_name = self.prefix[1:] + ".params." + name
+        param_name = self.prefix[1:] + '.params.' + name
         param_type = self.paramTypeDict[name]
         if param_type == ParameterType.PARAMETER_INTEGER:
             param_value = ParameterValue(type=param_type, integer_value=int(value))
@@ -577,11 +636,12 @@ class Crazyflie:
     #         params (Dict[str, Any]): Dict of parameter names/values.
     #     """
     #     for name, value in params.items():
-    #         rospy.set_param(self.prefix + "/" + name, value)
+    #         rospy.set_param(self.prefix + '/' + name, value)
     #     self.updateParamsService(params.keys())
 
     def cmdFullState(self, pos, vel, acc, yaw, omega):
-        """Sends a streaming full-state controller setpoint command.
+        """
+        Send a streaming full-state controller setpoint command.
 
         The full-state setpoint is most useful for aggressive maneuvers where
         feedforward inputs for acceleration and angular velocity are critical
@@ -602,6 +662,7 @@ class Crazyflie:
             yaw (float): Yaw angle. Radians.
             omega (array-like of float[3]): Angular velocity in body frame.
                 Radians / sec.
+
         """
         self.cmdFullStateMsg.header.stamp = self.node.get_clock().now().to_msg()
         self.cmdFullStateMsg.pose.position.x = pos[0]
@@ -663,11 +724,11 @@ class Crazyflie:
     #     self.cmdStopPublisher.publish(std_msgs.msg.Empty())
 
     # def cmdVel(self, roll, pitch, yawrate, thrust):
-    #     """Sends a streaming command of the "easy mode" manual control inputs.
+    #     """Sends a streaming command of the 'easy mode' manual control inputs.
 
     #     The (absolute roll & pitch, yaw rate, thrust) inputs are typically
     #     used for manual flying by beginners or causal pilots, as opposed to the
-    #     "acrobatic mode" inputs where roll and pitch rates are controlled
+    #     'acrobatic mode' inputs where roll and pitch rates are controlled
     #     instead of absolute angles. This mode limits the possible maneuvers,
     #     e.g. it is not possible to do a flip because the controller joystick
     #     would need to rotate 360 degrees.
@@ -697,17 +758,21 @@ class Crazyflie:
     #     msg.linear.z = thrust
     #     self.cmdVelPublisher.publish(msg)
 
-    def cmdPosition(self, pos, yaw=0.0):
-        """Sends a streaming command of absolute position and yaw setpoint.
+    def cmdPosition(self, pos, yaw=0.):
+        """
+        Send a streaming command of absolute position and yaw setpoint.
 
         Useful for slow maneuvers where a high-level planner determines the
         desired position, and the rest is left to the onboard controller.
 
         For more information on streaming setpoint commands, see the
         :meth:`cmdFullState()` documentation.
+
         Args:
+        ----
             pos (array-like of float[3]): Position. Meters.
             yaw (float): Yaw angle. Radians.
+
         """
         self.cmdPositionMsg.header.stamp = self.node.get_clock().now().to_msg()
         self.cmdPositionMsg.x = float(pos[0])
@@ -723,7 +788,7 @@ class Crazyflie:
         common to change the LED ring color many times during a flight, e.g.
         as some kind of status indicator. This method makes it convenient.
 
-        PRECONDITION: The param "ring/effect" must be set to 7 (solid color)
+        PRECONDITION: The param 'ring/effect' must be set to 7 (solid color)
         for this command to have any effect. The default mode uses the ring
         color to indicate radio connection quality.
 
@@ -744,9 +809,40 @@ class Crazyflie:
             self.setParam("ring.solidGreen", int(g * 255))
             self.setParam("ring.solidBlue", int(b * 255))
 
+    def status_topic_callback(self, msg):
+        """
+        Call back for topic /cfXXX/status.
+
+        Update the status attribute every time a crazyflie_interfaces/msg/Status
+        message is published on the topic /cfXXX/status
+        """
+        self.status = {'id': msg.header.frame_id,
+                       'timestamp_sec': msg.header.stamp.sec,
+                       'timestamp_nsec': msg.header.stamp.nanosec,
+                       'supervisor': msg.supervisor_info,
+                       'battery': msg.battery_voltage,
+                       'pm_state': msg.pm_state,
+                       'rssi': msg.rssi,
+                       'num_rx_broadcast': msg.num_rx_broadcast,
+                       'num_tx_broadcast': msg.num_tx_broadcast,
+                       'num_rx_unicast': msg.num_rx_unicast,
+                       'num_tx_unicast': msg.num_tx_unicast}
+
+    def get_status(self):
+        """
+        Return the status attribute.
+
+        Status is a dictionary containing:
+        frame id, timestamp, supervisor info, battery voltage, pm state, rssi, nb of received or
+        transmitted broadcast or unicast messages. see crazyflie_interfaces/msg/Status for details
+        """
+        # self.node.get_logger().info(f'Crazyflie.get_status() was called {self.status}')
+        return self.status
+
 
 class CrazyflieServer(rclpy.node.Node):
-    """Object for broadcasting commands to all robots at once.
+    """
+    Object for broadcasting commands to all robots at once.
 
     Also is the container for the individual :obj:`Crazyflie` objects.
 
@@ -755,48 +851,46 @@ class CrazyflieServer(rclpy.node.Node):
             as determined by the crazyflies.yaml config file.
         crazyfliesById (Dict[int, Crazyflie]): Index to the same Crazyflie
             objects by their ID number (last byte of radio address).
+
     """
 
     def __init__(self, log_poses=False):
         """Initialize the server. Waits for all ROS services before returning."""
-        super().__init__("CrazyflieAPI")
-        self.emergencyService = self.create_client(Empty, "all/emergency")
+        super().__init__('CrazyflieAPI')
+
+        # wait for server to be fully started
+        self.emergencyService = self.create_client(Empty, 'all/emergency')
         self.emergencyService.wait_for_service()
 
-        self.takeoffService = self.create_client(Takeoff, "all/takeoff")
+        self.takeoffService = self.create_client(Takeoff, 'all/takeoff')
         self.takeoffService.wait_for_service()
-        self.landService = self.create_client(Land, "all/land")
+        self.landService = self.create_client(Land, 'all/land')
         self.landService.wait_for_service()
-        self.goToService = self.create_client(GoTo, "all/go_to")
+        self.goToService = self.create_client(GoTo, 'all/go_to')
         self.goToService.wait_for_service()
-        self.startTrajectoryService = self.create_client(
-            StartTrajectory, "all/start_trajectory"
-        )
+        self.startTrajectoryService = self.create_client(StartTrajectory, 'all/start_trajectory')
         self.startTrajectoryService.wait_for_service()
+        self.armService = self.create_client(Arm, 'all/arm')
+        # self.armService.wait_for_service()
         self.setParamsService = self.create_client(
-            SetParameters, "/crazyflie_server/set_parameters"
-        )
+            SetParameters, '/crazyflie_server/set_parameters')
         self.setParamsService.wait_for_service()
 
         self.cmdFullStatePublisher = self.create_publisher(
-            FullState, "all/cmd_full_state", 1
-        )
+            FullState, 'all/cmd_full_state', 1)
         self.cmdFullStateMsg = FullState()
-        self.cmdFullStateMsg.header.frame_id = "/world"
+        self.cmdFullStateMsg.header.frame_id = '/world'
 
         cfnames = []
         for srv_name, srv_types in self.get_service_names_and_types():
-            # print("cfname: ", srv_name[1:-17])
-            if "crazyflie_interfaces/srv/StartTrajectory" in srv_types:
-                # remove "/" and "/start_trajectory"
+            if 'crazyflie_interfaces/srv/StartTrajectory' in srv_types:
+                # remove '/' and '/start_trajectory'
                 cfname = srv_name[1:-17]
-                if cfname != "all":
+                if cfname != 'all':
                     cfnames.append(cfname)
 
         # Query all parameters
-        listParamsService = self.create_client(
-            ListParameters, "/crazyflie_server/list_parameters"
-        )
+        listParamsService = self.create_client(ListParameters, '/crazyflie_server/list_parameters')
         listParamsService.wait_for_service()
         req = ListParameters.Request()
         req.depth = ListParameters.Request.DEPTH_RECURSIVE
@@ -809,14 +903,13 @@ class CrazyflieServer(rclpy.node.Node):
                 # Filter the parameters that belong to this Crazyflie
                 response = future.result()
                 for p in response.result.names:
-                    if ".params." in p:
+                    if '.params.' in p:
                         params.append(p)
                 break
 
         # Find the types for the parameters and store them
         describeParametersService = self.create_client(
-            DescribeParameters, "/crazyflie_server/describe_parameters"
-        )
+            DescribeParameters, '/crazyflie_server/describe_parameters')
         describeParametersService.wait_for_service()
         req = DescribeParameters.Request()
         req.names = params
@@ -828,7 +921,7 @@ class CrazyflieServer(rclpy.node.Node):
                 # Filter the parameters that belong to this Crazyflie
                 response = future.result()
                 for p, d in zip(params, response.descriptors):
-                    idx = p.index(".params.")
+                    idx = p.index('.params.')
                     cf_name = p[0:idx]
                     param_name = p[idx + 8 :]
                     t = d.type
@@ -837,11 +930,11 @@ class CrazyflieServer(rclpy.node.Node):
                     else:
                         allParamTypeDicts[cf_name] = {param_name: t}
                 break
-        self.paramTypeDict = allParamTypeDicts["all"]
+        self.paramTypeDict = allParamTypeDicts['all']
 
         self.crazyflies = []
-        self.crazyfliesById = dict()
-        self.crazyfliesByName = dict()
+        self.crazyfliesById = {}
+        self.crazyfliesByName = {}
         for i, cfname in enumerate(cfnames):
             cf = Crazyflie(
                 self, cfname, allParamTypeDicts[cfname], i, log_pose=log_poses
@@ -860,7 +953,8 @@ class CrazyflieServer(rclpy.node.Node):
         self.crazyflies = [sorted_cf[2] for sorted_cf in sorted_crazyflies]
 
     def emergency(self):
-        """Emergency stop. Cuts power; causes future commands to be ignored.
+        """
+        Emergency stop. Cuts power; causes future commands to be ignored.
 
         This command is useful if the operator determines that the control
         script is flawed, and that continuing to follow it will cause wrong/
@@ -875,16 +969,19 @@ class CrazyflieServer(rclpy.node.Node):
         self.emergencyService.call_async(req)
 
     def takeoff(self, targetHeight, duration, groupMask=0):
-        """Broadcasted takeoff - fly straight up, then hover indefinitely.
+        """
+        Broadcasted takeoff - fly straight up, then hover indefinitely.
 
         Broadcast version of :meth:`Crazyflie.takeoff()`. All robots that match the
         groupMask take off at exactly the same time. Use for synchronized
         movement. Asynchronous command; returns immediately.
 
         Args:
+        ----
             targetHeight (float): The z-coordinate at which to hover.
             duration (float): How long until the height is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`setGroupMask()` doc.
+
         """
         req = Takeoff.Request()
         req.group_mask = groupMask
@@ -893,19 +990,22 @@ class CrazyflieServer(rclpy.node.Node):
         self.takeoffService.call_async(req)
 
     def land(self, targetHeight, duration, groupMask=0):
-        """Broadcasted landing - fly straight down. User must cut power after.
+        """
+        Broadcasted landing - fly straight down. User must cut power after.
 
         Broadcast version of :meth:`Crazyflie.land()`. All robots that match the
         groupMask land at exactly the same time. Use for synchronized
         movement. Asynchronous command; returns immediately.
 
         Args:
+        ----
             targetHeight (float): The z-coordinate at which to land. Meters.
                 Usually should be a few centimeters above the initial position
                 to ensure that the controller does not try to penetrate the
                 floor if the mocap coordinate origin is not perfect.
             duration (float): How long until the height is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`Crazyflie.setGroupMask()` doc.
+
         """
         req = Land.Request()
         req.group_mask = groupMask
@@ -914,7 +1014,8 @@ class CrazyflieServer(rclpy.node.Node):
         self.landService.call_async(req)
 
     def goTo(self, goal, yaw, duration, groupMask=0):
-        """Broadcasted goTo - Move smoothly to goal, then hover indefinitely.
+        """
+        Broadcasted goTo - Move smoothly to goal, then hover indefinitely.
 
         Broadcast version of :meth:`Crazyflie.goTo()`. All robots that match the
         groupMask start moving at exactly the same time. Use for synchronized
@@ -932,6 +1033,7 @@ class CrazyflieServer(rclpy.node.Node):
             yaw (float): The goal yaw angle (heading). Radians.
             duration (float): How long until the goal is reached. Seconds.
             groupMask (int): Group mask bits. See :meth:`Crazyflie.setGroupMask()` doc.
+
         """
         goal = (float(goal[0]), float(goal[1]), float(goal[2]))
         req = GoTo.Request()
@@ -942,10 +1044,11 @@ class CrazyflieServer(rclpy.node.Node):
         req.duration = rclpy.duration.Duration(seconds=duration).to_msg()
         self.goToService.call_async(req)
 
-    def startTrajectory(
-        self, trajectoryId, timescale=1.0, reverse=False, relative=True, groupMask=0
-    ):
-        """Broadcasted - begins executing a previously uploaded trajectory.
+    def startTrajectory(self, trajectoryId,
+                        timescale=1.0, reverse=False,
+                        relative=True, groupMask=0):
+        """
+        Broadcasted - begins executing a previously uploaded trajectory.
 
         Broadcast version of :meth:`Crazyflie.startTrajectory()`.
         Asynchronous command; returns immediately.
@@ -959,6 +1062,7 @@ class CrazyflieServer(rclpy.node.Node):
             relative (bool): If true (default), the position of the trajectory
                 is shifted such that it begins at the current position setpoint.
             groupMask (int): Group mask bits. See :meth:`Crazyflie.setGroupMask()` doc.
+
         """
         req = StartTrajectory.Request()
         req.group_mask = groupMask
@@ -968,20 +1072,41 @@ class CrazyflieServer(rclpy.node.Node):
         req.relative = relative
         self.startTrajectoryService.call_async(req)
 
+    def arm(self, arm=True):
+        """
+        Broadcasted arming.
+
+        For a brushless or Bolt-based drone the motors start spinning and flight
+        is enabled.
+
+        Args:
+            arm (boolean): True if the motors should be armed, False otherwise.
+
+        """
+        req = Arm.Request()
+        req.arm = arm
+        self.armService.call_async(req)
+
     def setParam(self, name, value):
-        """Broadcasted setParam. See Crazyflie.setParam() for details."""
-        param_name = "all.params." + name
-        param_type = self.paramTypeDict[name]
-        if param_type == ParameterType.PARAMETER_INTEGER:
-            param_value = ParameterValue(type=param_type, integer_value=int(value))
-        elif param_type == ParameterType.PARAMETER_DOUBLE:
-            param_value = ParameterValue(type=param_type, double_value=float(value))
-        req = SetParameters.Request()
-        req.parameters = [Parameter(name=param_name, value=param_value)]
-        self.setParamsService.call_async(req)
+        """Set parameter via broadcasts. See Crazyflie.setParam for details."""
+        try:
+            param_name = 'all.params.' + name
+            param_type = self.paramTypeDict[name]
+            if param_type == ParameterType.PARAMETER_INTEGER:
+                param_value = ParameterValue(type=param_type, integer_value=int(value))
+            elif param_type == ParameterType.PARAMETER_DOUBLE:
+                param_value = ParameterValue(type=param_type, double_value=float(value))
+            req = SetParameters.Request()
+            req.parameters = [Parameter(name=param_name, value=param_value)]
+            self.setParamsService.call_async(req)
+        except KeyError as e:
+            self.get_logger().warn(f'(crazyflie.py)setParam : keyError raised {e}')
+        except Exception as e:
+            self.get_logger().warn(f'(crazyflie.py)setParam : exception raised {e}')
 
     def cmdFullState(self, pos, vel, acc, yaw, omega):
-        """Sends a streaming full-state controller setpoint command.
+        """
+        Send a streaming full-state controller setpoint command.
 
         The full-state setpoint is most useful for aggressive maneuvers where
         feedforward inputs for acceleration and angular velocity are critical
@@ -1002,6 +1127,7 @@ class CrazyflieServer(rclpy.node.Node):
             yaw (float): Yaw angle. Radians.
             omega (array-like of float[3]): Angular velocity in body frame.
                 Radians / sec.
+
         """
         self.cmdFullStateMsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdFullStateMsg.pose.position.x = pos[0]
