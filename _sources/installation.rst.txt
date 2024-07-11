@@ -9,6 +9,8 @@ Crazyswarm2 runs on **Ubuntu Linux** in one of the following configurations:
 Ubuntu Python   ROS 2
 ------ -------- ------------
 22.04  3.10     Humble, Iron
+------ -------- ------------
+24.04  3.12     Jazzy
 ====== ======== ============
 
 .. warning::
@@ -21,21 +23,27 @@ Ubuntu Python   ROS 2
 First Installation
 ------------------
 
-1. If needed, install ROS 2 using the instructions at https://docs.ros.org/en/galactic/Installation.html or https://docs.ros.org/en/humble/Installation.html.
+1. If needed, install ROS 2 using the instructions at https://docs.ros.org/en/jazzy/Installation.html.
 
 2. Install dependencies
 
     .. code-block:: bash
 
         sudo apt install libboost-program-options-dev libusb-1.0-0-dev
-        pip3 install rowan
+        pip3 install rowan nicegui
+
+   Then install the motion capture ROS 2 package (replace DISTRO with your version of ROS, namely humble, iron, or jazzy):
+
+    .. code-block:: bash
+
+        sudo apt-get install ros-DISTRO-motion-capture-tracking 
 
     If you are planning to use the CFlib backend, do:
 
     .. code-block:: bash
         
         pip3 install cflib transforms3d
-        sudo apt-get install ros-*DISTRO*-tf-transformations
+        sudo apt-get install ros-DISTRO-tf-transformations
 
 3. Set up your ROS 2 workspace
 
@@ -44,19 +52,32 @@ First Installation
         mkdir -p ros2_ws/src
         cd ros2_ws/src
         git clone https://github.com/IMRCLab/crazyswarm2 --recursive
-        git clone --branch ros2 --recursive https://github.com/IMRCLab/motion_capture_tracking.git
 
 4. Build your ROS 2 workspace
 
     .. code-block:: bash
 
         cd ../
-        colcon build --symlink-install
+        colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
     .. note::
        symlink-install allows you to edit Python and config files without running `colcon build` every time.
 
-5. Set up software-in-the-loop simulation (optional)
+5. Set up Crazyradio
+
+   For the crazyradio, you need to setup usb rules in order to communicate with the Crazyflie. Find the instructions for that here `in Bitcraze's USB permission guide for Linux <https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/>`_.
+
+   You will also need to update the crazyradio firmware to the latest development branch to be able to use all features. For Crazyradio PA (1), `follow these instructions <https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/building_flashing/>`_. For Crazyradio 2, follow `these instuctions to build the firmware <https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/building_flashing/>`_ and `these instuctions to flash it <https://www.bitcraze.io/documentation/repository/crazyradio2-firmware/main/building-and-flashing/flash//>`_.
+
+6. Update the crazyflies
+
+   If this is the first time handling crazyflies it is always good to start with `Bitcraze's getting started guide  <https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/>`_.
+
+   You can update each crazyflie firmware to the latest release via `these instructions of the Bitcraze Crazyflie client <https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-upgrade>`_ .
+
+   While you are at it, make sure that each crazyflie have an unique radio address which you can change in `the client via these instructions <https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration>`_ .
+
+7. Set up software-in-the-loop simulation (optional)
 
     This currently requires cloning the Crazyflie firmware and building the Python bindings manually. In a separate folder (not part of your ROS 2 workspace!), 
 
@@ -85,7 +106,7 @@ You can update your local copy using the following commands:
     git submodule sync
     git submodule update --init --recursive
     cd ../../
-    colcon build --symlink-install
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 
 .. Once you have completed installation,

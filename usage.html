@@ -56,12 +56,18 @@
 <li class="toctree-l3"><a class="reference internal" href="#crazyflies-yaml">crazyflies.yaml</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#positioning">Positioning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#motion-capture">Motion capture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#onboard-positioning">Onboard positioning</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#simulation">Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#physical-experiments">Physical Experiments</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#teleoperation-controller">Teleoperation controller</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-scripts">Python scripts</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#swarm-management">Swarm Management</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials.html">ROS 2 Tutorials</a></li>
@@ -108,8 +114,12 @@
 controlling other robots. This is in particular true for simulation. In this case,
 you can use</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ROS_LOCALHOST_ONLY</span><span class="o">=</span><span class="m">1</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ROS_DOMAIN_ID</span><span class="o">=</span>&lt;unique<span class="w"> </span>number<span class="w"> </span>between<span class="w"> </span><span class="m">0</span><span class="w"> </span>and<span class="w"> </span><span class="m">101</span>&gt;
 </pre></div>
 </div>
+<p>The first environment variable restricts ROS to your local machine. The second is useful
+if you have multiple user accounts on the same machine (e.g., a shared workstation computer).
+In such case, each user should use a unique <a class="reference external" href="https://docs.ros.org/en/iron/Concepts/Intermediate/About-Domain-ID.html">domain ID</a>.</p>
 </div>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
@@ -192,12 +202,68 @@ Also see the <a class="reference external" href="https://www.bitcraze.io/documen
 The server node will upon initialization, first look at the params/logs from the individual crazyflie’s settings, then the robot_types, and then anything in ‘all’ which has lowest priority.</p>
 </section>
 </section>
+<section id="positioning">
+<h2>Positioning<a class="headerlink" href="#positioning" title="Link to this heading"></a></h2>
+<p>The Crazyflie can be positioned in different ways, including motion capture and onboard positioning.
+This blogpost provides a good overview of the different positioning systems if you are unsure about which one you are using: <a class="reference external" href="https://www.bitcraze.io/2021/05/positioning-system-overview/">Positioning System Overview</a>.</p>
+<section id="motion-capture">
+<h3>Motion capture<a class="headerlink" href="#motion-capture" title="Link to this heading"></a></h3>
+<p>If you have a motion capture system, you can input the specifics in the motion_capture.yaml file.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">/motion_capture_tracking</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">ros__parameters</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;optitrack&quot;</span>
+<span class="w">        </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;optitrackPC&quot;</span>
+</pre></div>
+</div>
+<p>‘Type’ can replaced by “optitrack”, “vicon”, “qualisys” or any of the other supported motion capture systems of the <a class="reference external" href="https://github.com/IMRCLab/motion_capture_tracking/tree/ros2/">motion capture tracking package</a>.
+‘hostname’ is the hostname of the computer running the motion capture software which can either be the PC name or the IP.</p>
+<p>Also make sure that in crazyflies.yaml, the motion_capture field is enabled for the specific robot type, or that the crazyflie is of a type that supports motion capture.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">robot_types</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">cf21</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">motion_capture</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+</div>
+<p>For more indepth information about the motion capture tracking package, see the <a class="reference external" href="https://github.com/IMRCLab/motion_capture_tracking/tree/ros2/">documentation</a>.</p>
+</section>
+<section id="onboard-positioning">
+<h3>Onboard positioning<a class="headerlink" href="#onboard-positioning" title="Link to this heading"></a></h3>
+<p>The Crazyflie also supports several alternative positioning systems that provide direct onboard position or pose estimation.
+In this case you do not need to receive positioning from an external system like with MoCap.</p>
+<p>Instructions per positioning system:</p>
+<ul class="simple">
+<li><p>The <a class="reference external" href="https://www.bitcraze.io/documentation/system/positioning/loco-positioning-system/">Loco positioning system</a> - <a class="reference external" href="https://www.bitcraze.io/documentation/tutorials/getting-started-with-loco-positioning-system/">Follow Bitcraze’s tutorial on LPS here</a>.</p></li>
+<li><p>The <a class="reference external" href="https://www.bitcraze.io/documentation/system/positioning/lighthouse/">Lighthouse positioning system</a> - <a class="reference external" href="https://www.bitcraze.io/documentation/tutorials/getting-started-with-lighthouse-positioning-system/">Follow Bitcraze’s tutorial on Lighthouse here</a>. Make sure to review the system management for saving and loading a system config, such that you don’t have to redo the basestation geometry estimation for each crazyflie.</p></li>
+<li><p>The <a class="reference external" href="https://www.bitcraze.io/products/flow-deck-v2/">Flow deck</a> -  <a class="reference external" href="https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/">Follow Bitcraze’s tutorial on the flowdeck here</a>. Note that the flow deck provides an relative positoing estimate and might conflict when you are flying with crazyswarm2 if you are flying with absolute coordinates instead of relative ones.</p></li>
+</ul>
+<p>Also in this case, make sure that motion_capture is disabled in the crazyflies.yaml file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">robot_types</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">cf21</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">motion_capture</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</pre></div>
+</div>
+<p>Also it is a good idea to turn on pose estimation logging such that you are able to see the poses and transforms of the Crazyflie updated in real life in rviz or the Swarm management gui.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">firmware_logging</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">default_topics</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">pose</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">frequency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"> </span><span class="c1"># Hz</span>
+</pre></div>
+</div>
+<p>Moreover, be aware that the motion capture node is enabled in the launch file by default, which can be turned off by adding ‘mocap:=False’ to the launch command.</p>
+</section>
+</section>
 <section id="simulation">
 <h2>Simulation<a class="headerlink" href="#simulation" title="Link to this heading"></a></h2>
 <p>Any usage of the ROS API, including high-level Python scripts, can be visualized before execution. The initial position and number of robots is taken from the crazyflies.yaml configuration file.
 The simulation uses the firmware code as software-in-the-loop, and can optionally include the robot dynamics.
 The configuration of the simulation (physics simulator, controller, etc.) can be changed in server.yaml.</p>
 <p>Example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>terminal<span class="o">]</span>$<span class="w"> </span>ros2<span class="w"> </span>launch<span class="w"> </span>crazyflie_examples<span class="w"> </span>launch.py<span class="w"> </span>script:<span class="o">=</span>hello_world<span class="w"> </span>backend:<span class="o">=</span>sim
+</pre></div>
+</div>
+<p>which is a short-hand for the following two commands:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>terminal1<span class="o">]</span>$<span class="w"> </span>ros2<span class="w"> </span>launch<span class="w"> </span>crazyflie<span class="w"> </span>launch.py<span class="w"> </span>backend:<span class="o">=</span>sim
 <span class="o">[</span>terminal2<span class="o">]</span>$<span class="w"> </span>ros2<span class="w"> </span>run<span class="w"> </span>crazyflie_examples<span class="w"> </span>hello_world<span class="w"> </span>--ros-args<span class="w"> </span>-p<span class="w"> </span>use_sim_time:<span class="o">=</span>True
 </pre></div>
@@ -220,7 +286,18 @@ You may run the script multiple times or different scripts while leaving the ser
 <span class="o">[</span>terminal2<span class="o">]</span>$<span class="w"> </span>ros2<span class="w"> </span>run<span class="w"> </span>crazyflie_examples<span class="w"> </span>hello_world
 </pre></div>
 </div>
+<p>If you only want to run a single script once, you can also use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>terminal<span class="o">]</span>$<span class="w"> </span>ros2<span class="w"> </span>launch<span class="w"> </span>crazyflie_examples<span class="w"> </span>launch.py<span class="w"> </span>script:<span class="o">=</span>hello_world
+</pre></div>
+</div>
 </section>
+</section>
+<section id="swarm-management">
+<h2>Swarm Management<a class="headerlink" href="#swarm-management" title="Link to this heading"></a></h2>
+<p>The launch file will also start a swarm management tool that is a ROS node and web-based GUI.
+In the upper pane is the location of the drone visualized in a 3D window, similar to rviz.
+In the lower pane, the status as well as log messages are visible (tabbed per drone).
+In the future, we are planning to add support for rebooting and other actions.</p>
 </section>
 </section>
 
@@ -235,7 +312,7 @@ You may run the script multiple times or different scripts while leaving the ser
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021-2022, Wolfgang Hönig (IMRClab), Kimberly McGuire (Bitcraze AB) and contributors.</p>
+    <p>&#169; Copyright 2021-2024, Wolfgang Hönig (TU Berlin), Kimberly McGuire (Bitcraze AB), and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

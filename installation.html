@@ -98,6 +98,10 @@
 <td><p>3.10</p></td>
 <td><p>Humble, Iron</p></td>
 </tr>
+<tr class="row-odd"><td><p>24.04</p></td>
+<td><p>3.12</p></td>
+<td><p>Jazzy</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition warning">
@@ -112,16 +116,22 @@ This program will link the crazyradio directly with WS, but beware of bugs. Chec
 <section id="first-installation">
 <h2>First Installation<a class="headerlink" href="#first-installation" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p>If needed, install ROS 2 using the instructions at <a class="reference external" href="https://docs.ros.org/en/galactic/Installation.html">https://docs.ros.org/en/galactic/Installation.html</a> or <a class="reference external" href="https://docs.ros.org/en/humble/Installation.html">https://docs.ros.org/en/humble/Installation.html</a>.</p></li>
+<li><p>If needed, install ROS 2 using the instructions at <a class="reference external" href="https://docs.ros.org/en/jazzy/Installation.html">https://docs.ros.org/en/jazzy/Installation.html</a>.</p></li>
 <li><p>Install dependencies</p>
 <blockquote>
 <div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>libboost-program-options-dev<span class="w"> </span>libusb-1.0-0-dev
-pip3<span class="w"> </span>install<span class="w"> </span>rowan
+pip3<span class="w"> </span>install<span class="w"> </span>rowan<span class="w"> </span>nicegui
+</pre></div>
+</div>
+</div></blockquote>
+<p>Then install the motion capture ROS 2 package (replace DISTRO with your version of ROS, namely humble, iron, or jazzy):</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ros-DISTRO-motion-capture-tracking
 </pre></div>
 </div>
 <p>If you are planning to use the CFlib backend, do:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip3<span class="w"> </span>install<span class="w"> </span>cflib<span class="w"> </span>transforms3d
-sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ros-*DISTRO*-tf-transformations
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ros-DISTRO-tf-transformations
 </pre></div>
 </div>
 </div></blockquote>
@@ -131,7 +141,6 @@ sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w
 <div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>ros2_ws/src
 <span class="nb">cd</span><span class="w"> </span>ros2_ws/src
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/IMRCLab/crazyswarm2<span class="w"> </span>--recursive
-git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>ros2<span class="w"> </span>--recursive<span class="w"> </span>https://github.com/IMRCLab/motion_capture_tracking.git
 </pre></div>
 </div>
 </div></blockquote>
@@ -139,7 +148,7 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <li><p>Build your ROS 2 workspace</p>
 <blockquote>
 <div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>../
-colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install
+colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install<span class="w"> </span>--cmake-args<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release
 </pre></div>
 </div>
 <div class="admonition note">
@@ -147,6 +156,15 @@ colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install
 <p>symlink-install allows you to edit Python and config files without running <cite>colcon build</cite> every time.</p>
 </div>
 </div></blockquote>
+</li>
+<li><p>Set up Crazyradio</p>
+<p>For the crazyradio, you need to setup usb rules in order to communicate with the Crazyflie. Find the instructions for that here <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/">in Bitcraze’s USB permission guide for Linux</a>.</p>
+<p>You will also need to update the crazyradio firmware to the latest development branch to be able to use all features. For Crazyradio PA (1), <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/building_flashing/">follow these instructions</a>. For Crazyradio 2, follow <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/building_flashing/">these instuctions to build the firmware</a> and <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyradio2-firmware/main/building-and-flashing/flash//">these instuctions to flash it</a>.</p>
+</li>
+<li><p>Update the crazyflies</p>
+<p>If this is the first time handling crazyflies it is always good to start with <a class="reference external" href="https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/">Bitcraze’s getting started guide</a>.</p>
+<p>You can update each crazyflie firmware to the latest release via <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-upgrade">these instructions of the Bitcraze Crazyflie client</a> .</p>
+<p>While you are at it, make sure that each crazyflie have an unique radio address which you can change in <a class="reference external" href="https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration">the client via these instructions</a> .</p>
 </li>
 <li><p>Set up software-in-the-loop simulation (optional)</p>
 <blockquote>
@@ -171,7 +189,7 @@ git<span class="w"> </span>pull
 git<span class="w"> </span>submodule<span class="w"> </span>sync
 git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive
 <span class="nb">cd</span><span class="w"> </span>../../
-colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install
+colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install<span class="w"> </span>--cmake-args<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release
 </pre></div>
 </div>
 </section>
@@ -188,7 +206,7 @@ colcon<span class="w"> </span>build<span class="w"> </span>--symlink-install
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021-2022, Wolfgang Hönig (IMRClab), Kimberly McGuire (Bitcraze AB) and contributors.</p>
+    <p>&#169; Copyright 2021-2024, Wolfgang Hönig (TU Berlin), Kimberly McGuire (Bitcraze AB), and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

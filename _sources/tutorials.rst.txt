@@ -17,15 +17,17 @@ Teleoperation keyboard
 We have an example of the telop_twist_keyboard package working together with the crazyflie
 
 First, make sure that the crazyflies.yaml has the right URI and if you are using the `Flow deck <https://www.bitcraze.io/products/flow-deck-v2/>`_ or `any other position system available <https://www.bitcraze.io/documentation/system/positioning//>`_ to the crazyflie.  
-set the controller to 1 (PID)
+set the controller to 1 (PID). 
 
-And if you  have not already, install the teleop package for the keyboard. (replace DISTRO with humble or iron):
+And if you  have not already, install the teleop package for the keyboard. (replace DISTRO with humble, iron, or jazzy):
 
 .. code-block:: bash
 
     sudo apt-get install ros-DISTRO-teleop-twist-keyboard
 
-Then, run the following launch file to start up the crazyflie server (CFlib):
+Then, first checkout keyboard_velmux_launch.py and make sure that the 'robot_prefix' of vel_mux matches your crazyflie ID in crazyfies.yaml ('cf231').
+
+Then run the following launch file to start up the crazyflie server (CFlib):
 
 .. code-block:: bash
 
@@ -35,7 +37,7 @@ in another terminal run:
 
 .. code-block:: bash
 
-    ros2 run teleop_twist_keyboard telop_twist_keyboard
+    ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 Use 't' to take off, and 'b' to land. For the rest, use the instructions of the telop package. 
 
@@ -86,6 +88,46 @@ Here you can see an example of 5 crazyflies with the Pose default topic enabled,
     <div style="position: relative; padding-bottom: 56.25%; margin-bottom: 20pt; height: 0; overflow: hidden; max-width: 100%; height: auto;">
         <iframe src="https://www.youtube.com/embed/w99hLldcSp4" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
     </div>
+
+Mapping with simple mapper
+--------------------------
+
+If you have a crazyflie with a multiranger and flowdeck, you can try out some simple mapping.
+
+Make sure that the scan and odometry logging is enabled in crazyflies.yaml:
+
+.. code-block:: bash
+
+  firmware_logging:
+    enabled: true
+    default_topics:
+      odom:
+        frequency: 10 # Hz
+      scan:
+        frequency: 10 # Hz
+
+and make sure that the pid controller and kalman filter is enabled:
+
+.. code-block:: bash
+
+  firmware_params:
+    stabilizer:
+      estimator: 2 # 1: complementary, 2: kalman
+      controller: 1 # 1: PID, 2: mellinger
+
+If you are using a different name for your crazyflie, make sure to change the following in the example launch file (multiranger_simple_mapper_launch.py):
+
+.. code-block:: bash
+
+    crazyflie_name = '/cf231'
+
+Then start the simple mapper example launch file:
+
+.. code-block:: bash
+
+    ros2 launch crazyflie_examples multiranger_simple_mapper_launch.py
+
+And watch the mapping happening in rviz2 while controlling the crazyflie with the teleop node (see the sections above).
 
 Mapping with the SLAM toolbox
 -----------------------------
@@ -159,14 +201,14 @@ Let's first look at the launch file real quick (multiranger_mapping_launch.py):
             output='screen',
             parameters=[{"hover_height": 0.3},
                         {"incoming_twist_topic": "/cmd_vel"},
-                        {"robot_prefix": "/cf1"}]
+                        {"robot_prefix": "/cf231"}]
         ),
         Node(
         parameters=[
           {'odom_frame': 'odom'},
-          {'map_frame': 'world'},
-          {'base_frame': 'cf1'},
-          {'scan_topic': '/cf1/scan'},
+          {'map_frame': 'map'},
+          {'base_frame': 'cf231'},
+          {'scan_topic': '/cf231/scan'},
           {'use_scan_matching': False},
           {'max_laser_range': 3.5},
           {'resolution': 0.1},
@@ -182,7 +224,7 @@ Let's first look at the launch file real quick (multiranger_mapping_launch.py):
 
 Here is an explanation of the nodes:
 
-* The first node enables the crazyflie server, namely the python version (cflib) as that currently has logging enabled. This takes the crazyflies.yaml file you just edited and uses those values to set up the crazyflie.
+* The first node enables the crazyflie server, namely the python version (cflib) as that currently has logging enabled. This takes the crazyflies.yaml file you just edited and uses those values to set up the crazyflie. You might need to change some topic strings based on your Crazyflie name (`/cf231` to something else)
 * The second node is a velocity command handler, which takes an incoming twist message, makes the Crazyflie take off to a fixed height and enables velocity control of external packages (you'll see why soon enough).
 * The third node is the slam toolbox node. You noted that we gave it some different parameters, where we upped the speed of the map generation, decreased the resolution and turn of ray matching as mentioned in the warning above.
 
@@ -232,7 +274,7 @@ Now, open up a  rviv2 window in a seperate terminal with :
 
 Add the following displays and panels to RVIZ:
 
-* Changed the 'Fixed frame' to 'world
+* Changed the 'Fixed frame' to 'map'
 * 'Add' button under displays and 'by topic' tab, select the '/map' topic.
 * 'Add' button under displays and 'by display type' add a transform.
 * 'Panels' on the top menu, select 'add new panel' and select the SLAMToolBoxPlugin

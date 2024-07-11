@@ -55,6 +55,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ROS 2 Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#teleoperation-keyboard">Teleoperation keyboard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#vizualization-with-rviz2">Vizualization with RVIZ2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mapping-with-simple-mapper">Mapping with simple mapper</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mapping-with-the-slam-toolbox">Mapping with the SLAM toolbox</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#preperation">Preperation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#connecting-with-the-crazyflie">Connecting with the Crazyflie</a></li>
@@ -108,17 +109,18 @@
 <h2>Teleoperation keyboard<a class="headerlink" href="#teleoperation-keyboard" title="Link to this heading"></a></h2>
 <p>We have an example of the telop_twist_keyboard package working together with the crazyflie</p>
 <p>First, make sure that the crazyflies.yaml has the right URI and if you are using the <a class="reference external" href="https://www.bitcraze.io/products/flow-deck-v2/">Flow deck</a> or <a class="reference external" href="https://www.bitcraze.io/documentation/system/positioning//">any other position system available</a> to the crazyflie.
-set the controller to 1 (PID)</p>
-<p>And if you  have not already, install the teleop package for the keyboard. (replace DISTRO with humble or iron):</p>
+set the controller to 1 (PID).</p>
+<p>And if you  have not already, install the teleop package for the keyboard. (replace DISTRO with humble, iron, or jazzy):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ros-DISTRO-teleop-twist-keyboard
 </pre></div>
 </div>
-<p>Then, run the following launch file to start up the crazyflie server (CFlib):</p>
+<p>Then, first checkout keyboard_velmux_launch.py and make sure that the ‘robot_prefix’ of vel_mux matches your crazyflie ID in crazyfies.yaml (‘cf231’).</p>
+<p>Then run the following launch file to start up the crazyflie server (CFlib):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>launch<span class="w"> </span>crazyflie_examples<span class="w"> </span>keyboard_velmux_launch.py
 </pre></div>
 </div>
 <p>in another terminal run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>run<span class="w"> </span>teleop_twist_keyboard<span class="w"> </span>telop_twist_keyboard
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>run<span class="w"> </span>teleop_twist_keyboard<span class="w"> </span>teleop_twist_keyboard
 </pre></div>
 </div>
 <p>Use ‘t’ to take off, and ‘b’ to land. For the rest, use the instructions of the telop package.</p>
@@ -156,6 +158,36 @@ The crazyflie names should appear with their estimated position.</p>
 <div style="position: relative; padding-bottom: 56.25%; margin-bottom: 20pt; height: 0; overflow: hidden; max-width: 100%; height: auto;">
     <iframe src="https://www.youtube.com/embed/w99hLldcSp4" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
 </div></section>
+<section id="mapping-with-simple-mapper">
+<h2>Mapping with simple mapper<a class="headerlink" href="#mapping-with-simple-mapper" title="Link to this heading"></a></h2>
+<p>If you have a crazyflie with a multiranger and flowdeck, you can try out some simple mapping.</p>
+<p>Make sure that the scan and odometry logging is enabled in crazyflies.yaml:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>firmware_logging:
+<span class="w">  </span>enabled:<span class="w"> </span><span class="nb">true</span>
+<span class="w">  </span>default_topics:
+<span class="w">    </span>odom:
+<span class="w">      </span>frequency:<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="c1"># Hz</span>
+<span class="w">    </span>scan:
+<span class="w">      </span>frequency:<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="c1"># Hz</span>
+</pre></div>
+</div>
+<p>and make sure that the pid controller and kalman filter is enabled:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>firmware_params:
+<span class="w">  </span>stabilizer:
+<span class="w">    </span>estimator:<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c1"># 1: complementary, 2: kalman</span>
+<span class="w">    </span>controller:<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="c1"># 1: PID, 2: mellinger</span>
+</pre></div>
+</div>
+<p>If you are using a different name for your crazyflie, make sure to change the following in the example launch file (multiranger_simple_mapper_launch.py):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">crazyflie_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;/cf231&#39;</span>
+</pre></div>
+</div>
+<p>Then start the simple mapper example launch file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>launch<span class="w"> </span>crazyflie_examples<span class="w"> </span>multiranger_simple_mapper_launch.py
+</pre></div>
+</div>
+<p>And watch the mapping happening in rviz2 while controlling the crazyflie with the teleop node (see the sections above).</p>
+</section>
 <section id="mapping-with-the-slam-toolbox">
 <h2>Mapping with the SLAM toolbox<a class="headerlink" href="#mapping-with-the-slam-toolbox" title="Link to this heading"></a></h2>
 <p>You can connect the Crazyflie through ROS 2 with existing packages like the <a class="reference external" href="https://github.com/SteveMacenski/slam_toolbox/">SLAM toolbox</a>.
@@ -213,14 +245,14 @@ With a <a class="reference external" href="https://www.bitcraze.io/products/flow
 <span class="w">        </span><span class="nv">output</span><span class="o">=</span><span class="s1">&#39;screen&#39;</span>,
 <span class="w">        </span><span class="nv">parameters</span><span class="o">=[{</span><span class="s2">&quot;hover_height&quot;</span>:<span class="w"> </span><span class="m">0</span>.3<span class="o">}</span>,
 <span class="w">                    </span><span class="o">{</span><span class="s2">&quot;incoming_twist_topic&quot;</span>:<span class="w"> </span><span class="s2">&quot;/cmd_vel&quot;</span><span class="o">}</span>,
-<span class="w">                    </span><span class="o">{</span><span class="s2">&quot;robot_prefix&quot;</span>:<span class="w"> </span><span class="s2">&quot;/cf1&quot;</span><span class="o">}]</span>
+<span class="w">                    </span><span class="o">{</span><span class="s2">&quot;robot_prefix&quot;</span>:<span class="w"> </span><span class="s2">&quot;/cf231&quot;</span><span class="o">}]</span>
 <span class="w">    </span><span class="o">)</span>,
 <span class="w">    </span>Node<span class="o">(</span>
 <span class="w">    </span><span class="nv">parameters</span><span class="o">=[</span>
 <span class="w">      </span><span class="o">{</span><span class="s1">&#39;odom_frame&#39;</span>:<span class="w"> </span><span class="s1">&#39;odom&#39;</span><span class="o">}</span>,
-<span class="w">      </span><span class="o">{</span><span class="s1">&#39;map_frame&#39;</span>:<span class="w"> </span><span class="s1">&#39;world&#39;</span><span class="o">}</span>,
-<span class="w">      </span><span class="o">{</span><span class="s1">&#39;base_frame&#39;</span>:<span class="w"> </span><span class="s1">&#39;cf1&#39;</span><span class="o">}</span>,
-<span class="w">      </span><span class="o">{</span><span class="s1">&#39;scan_topic&#39;</span>:<span class="w"> </span><span class="s1">&#39;/cf1/scan&#39;</span><span class="o">}</span>,
+<span class="w">      </span><span class="o">{</span><span class="s1">&#39;map_frame&#39;</span>:<span class="w"> </span><span class="s1">&#39;map&#39;</span><span class="o">}</span>,
+<span class="w">      </span><span class="o">{</span><span class="s1">&#39;base_frame&#39;</span>:<span class="w"> </span><span class="s1">&#39;cf231&#39;</span><span class="o">}</span>,
+<span class="w">      </span><span class="o">{</span><span class="s1">&#39;scan_topic&#39;</span>:<span class="w"> </span><span class="s1">&#39;/cf231/scan&#39;</span><span class="o">}</span>,
 <span class="w">      </span><span class="o">{</span><span class="s1">&#39;use_scan_matching&#39;</span>:<span class="w"> </span>False<span class="o">}</span>,
 <span class="w">      </span><span class="o">{</span><span class="s1">&#39;max_laser_range&#39;</span>:<span class="w"> </span><span class="m">3</span>.5<span class="o">}</span>,
 <span class="w">      </span><span class="o">{</span><span class="s1">&#39;resolution&#39;</span>:<span class="w"> </span><span class="m">0</span>.1<span class="o">}</span>,
@@ -237,7 +269,7 @@ With a <a class="reference external" href="https://www.bitcraze.io/products/flow
 </div>
 <p>Here is an explanation of the nodes:</p>
 <ul class="simple">
-<li><p>The first node enables the crazyflie server, namely the python version (cflib) as that currently has logging enabled. This takes the crazyflies.yaml file you just edited and uses those values to set up the crazyflie.</p></li>
+<li><p>The first node enables the crazyflie server, namely the python version (cflib) as that currently has logging enabled. This takes the crazyflies.yaml file you just edited and uses those values to set up the crazyflie. You might need to change some topic strings based on your Crazyflie name (<cite>/cf231</cite> to something else)</p></li>
 <li><p>The second node is a velocity command handler, which takes an incoming twist message, makes the Crazyflie take off to a fixed height and enables velocity control of external packages (you’ll see why soon enough).</p></li>
 <li><p>The third node is the slam toolbox node. You noted that we gave it some different parameters, where we upped the speed of the map generation, decreased the resolution and turn of ray matching as mentioned in the warning above.</p></li>
 </ul>
@@ -278,7 +310,7 @@ rviz2
 </div>
 <p>Add the following displays and panels to RVIZ:</p>
 <ul class="simple">
-<li><p>Changed the ‘Fixed frame’ to ‘world</p></li>
+<li><p>Changed the ‘Fixed frame’ to ‘map’</p></li>
 <li><p>‘Add’ button under displays and ‘by topic’ tab, select the ‘/map’ topic.</p></li>
 <li><p>‘Add’ button under displays and ‘by display type’ add a transform.</p></li>
 <li><p>‘Panels’ on the top menu, select ‘add new panel’ and select the SLAMToolBoxPlugin</p></li>
@@ -425,7 +457,7 @@ Please check out  <a class="reference external" href="https://navigation.ros.org
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021-2022, Wolfgang Hönig (IMRClab), Kimberly McGuire (Bitcraze AB) and contributors.</p>
+    <p>&#169; Copyright 2021-2024, Wolfgang Hönig (TU Berlin), Kimberly McGuire (Bitcraze AB), and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
