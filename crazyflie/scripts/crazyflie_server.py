@@ -34,7 +34,7 @@ from crazyflie_interfaces.srv import (
     UploadBezierTrajectory,
 )
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult, ParameterType
-from crazyflie_interfaces.msg import Hover, LogDataGeneric, FullState
+from crazyflie_interfaces.msg import Status, Hover, LogDataGeneric, FullState
 from motion_capture_tracking_interfaces.msg import NamedPoseArray
 
 from std_srvs.srv import Empty
@@ -85,6 +85,7 @@ class CrazyflieServer(Node):
             "pose": PoseStamped,
             "scan": LaserScan,
             "odom": Odometry,
+            "status": Status,
         }
         self.default_log_vars = {
             "pose": [
@@ -110,11 +111,13 @@ class CrazyflieServer(Node):
                 "gyro.x",
                 "gyro.y",
             ],
+            "status": ["supervisor.info", "pm.vbatMV", "pm.state", "radio.rssi"],
         }
         self.default_log_fnc = {
             "pose": self._log_pose_data_callback,
             "scan": self._log_scan_data_callback,
             "odom": self._log_odom_data_callback,
+            "status": self._log_status_data_callback,
         }
 
         self.world_tf_name = "world"
@@ -273,6 +276,18 @@ class CrazyflieServer(Node):
                 continue
 
             name = self.cf_dict[uri]
+
+            pub = self.create_publisher(
+                String,
+                name + "/robot_description",
+                rclpy.qos.QoSProfile(
+                    depth=1, durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL
+                ),
+            )
+
+            msg = String()
+            msg.data = self._ros_parameters["robot_description"].replace("$NAME", name)
+            pub.publish(msg)
 
             self.create_service(
                 Empty, name + "/emergency", partial(self._emergency_callback, uri=uri)
@@ -666,6 +681,21 @@ class CrazyflieServer(Node):
         t_base.transform.rotation.w = q[3]
         self.tfbr.sendTransform(t_base)
 
+    def _log_status_data_callback(self, timestamp, data, logconf, uri):
+        """
+        Send out the ROS 2 status topic
+        """
+
+        msg = Status()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.world_tf_name
+        msg.supervisor_info = data.get("supervisor.info")
+        msg.battery_voltage = data.get("pm.vbatMV") / 1000.0
+        msg.pm_state = data.get("pm.state")
+        msg.rssi = data.get("radio.rssi")
+
+        self.swarm._cfs[uri].logging["status_publisher"].publish(msg)
+
     def _log_custom_data_callback(self, timestamp, data, logconf, uri):
         """
         Once custom log block is retrieved from the Crazyflie,
@@ -943,7 +973,7 @@ class CrazyflieServer(Node):
 
         id = request.trajectory_id
         offset = request.piece_offset
-        lenght = len(request.pieces)
+        length = len(request.pieces)
         total_duration = 0
         self.get_logger().info(
             "[%s] upload_trajectory(id=%d,offset=%d, lenght=%d)"
@@ -951,12 +981,12 @@ class CrazyflieServer(Node):
                 self.cf_dict[uri],
                 id,
                 offset,
-                lenght,
+                length,
             )
         )
 
         trajectory = []
-        for i in range(lenght):
+        for i in range(length):
             piece = request.pieces[i]
             px = Poly4D.Poly(piece.poly_x)
             py = Poly4D.Poly(piece.poly_y)

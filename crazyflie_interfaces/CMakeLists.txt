@@ -18,11 +18,14 @@ find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ConnectionStatistics.msg"
+  "msg/ConnectionStatisticsArray.msg"
   "msg/FullState.msg"
   "msg/LogDataGeneric.msg"
   "msg/Hover.msg"
   "msg/LogBlock.msg"
   "msg/Position.msg"
+  "msg/Status.msg"
   "msg/TrajectoryPolynomialPiece.msg"
   "msg/TrajectoryBezierPiece.msg"
   "msg/VelocityWorld.msg"
@@ -38,6 +41,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/UploadBezierTrajectory.srv"
   "srv/RemoveLogging.srv"
   "srv/AddLogging.srv"
+  "srv/Arm.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs 
   ADD_LINTER_TESTS
 )

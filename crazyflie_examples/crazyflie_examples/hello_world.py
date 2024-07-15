@@ -1,6 +1,5 @@
 """Takeoff-hover-land for one CF. Useful to validate hardware config."""
 
-# from pycrazyswarm import Crazyswarm
 from crazyflie_py import Crazyswarm
 import pickle
 
@@ -24,5 +23,5 @@ def main():
     #     x = pickle.load(f)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
