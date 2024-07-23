@@ -19,9 +19,9 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from collections import defaultdict
 import copy
 
-from crazyflie_interfaces.msg import FullState, Position, Status, TrajectoryPolynomialPiece
+from crazyflie_interfaces.msg import FullState, Position, Status, TrajectoryPolynomialPiece, TrajectoryBezierPiece
 from crazyflie_interfaces.srv import Arm, GoTo, Land, \
-    NotifySetpointsStop, StartTrajectory, Takeoff, UploadTrajectory
+    NotifySetpointsStop, StartTrajectory, Takeoff, UploadTrajectory, UploadBezierTrajectory
 from geometry_msgs.msg import Point
 import numpy as np
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue

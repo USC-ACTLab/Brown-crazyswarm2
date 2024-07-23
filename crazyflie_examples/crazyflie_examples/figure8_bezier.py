@@ -26,6 +26,7 @@ def main():
     for i in range(TRIALS):
         for cf in allcfs.crazyflies:
             cf.uploadBezierTrajectory(0, 0, trajectory=traj)
+            cf.uploadBezierTrajectory(1, 0, trajectory=traj) # upload multiple trajectory is possible
 
         allcfs.takeoff(targetHeight=1.0, duration=2.0)
         timeHelper.sleep(2.5)
@@ -36,6 +37,8 @@ def main():
 
         allcfs.startTrajectory(0, timescale=TIMESCALE)
         timeHelper.sleep(traj.total_time * TIMESCALE + 2.0)
+        # allcfs.startTrajectory(1, timescale=TIMESCALE)
+        # timeHelper.sleep(traj.total_time * TIMESCALE + 2.0)
 
         timeHelper.sleep(4.5)
         allcfs.land(targetHeight=0.0, duration=2.0)
