@@ -19,12 +19,20 @@ import time
 import cflib.crtp
 from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
-from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import CompressedSegment
+from cflib.crazyflie.mem import CompressedStart
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.crazyflie.mem import Poly4D
 
 from crazyflie_interfaces.srv import Takeoff, Land, GoTo, RemoveLogging, AddLogging
-from crazyflie_interfaces.srv import UploadTrajectory, StartTrajectory, NotifySetpointsStop
+from crazyflie_interfaces.srv import (
+    UploadTrajectory,
+    StartTrajectory,
+    NotifySetpointsStop,
+    UploadBezierTrajectory,
+)
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult, ParameterType
 from crazyflie_interfaces.msg import Status, Hover, LogDataGeneric, FullState
 from motion_capture_tracking_interfaces.msg import NamedPoseArray
@@ -258,9 +266,14 @@ class CrazyflieServer(Node):
                     self._upload_trajectory_callback, uri=uri)
             )
             self.create_service(
-                NotifySetpointsStop, name +
-                "/notify_setpoints_stop", partial(
-                    self._notify_setpoints_stop_callback, uri=uri)
+                UploadBezierTrajectory,
+                name + "/upload_bezier_trajectory",
+                partial(self._upload_bezier_trajectory_callback, uri=uri),
+            )
+            self.create_service(
+                NotifySetpointsStop,
+                name + "/notify_setpoints_stop",
+                partial(self._notify_setpoints_stop_callback, uri=uri),
             )
             self.create_subscription(
                 Twist, name +
@@ -761,8 +774,6 @@ class CrazyflieServer(Node):
             a certain height in high level commander
         """
 
-        print("call1 ", uri)
-
         duration = float(request.duration.sec) + \
             float(request.duration.nanosec / 1e9)
         self.get_logger().info(
@@ -866,17 +877,17 @@ class CrazyflieServer(Node):
 
         id = request.trajectory_id
         offset = request.piece_offset
-        lenght = len(request.pieces)
+        length = len(request.pieces)
         total_duration = 0
-        self.get_logger().info("[%s] upload_trajectory(id=%d,offset=%d, lenght=%d)" % (
+        self.get_logger().info("[%s] upload_trajectory(id=%d,offset=%d, length=%d)" % (
             self.cf_dict[uri],
             id,
             offset,
-            lenght,
+            length,
         ))
 
         trajectory = []
-        for i in range(lenght):
+        for i in range(length):
             piece = request.pieces[i]
             px = Poly4D.Poly(piece.poly_x)
             py = Poly4D.Poly(piece.poly_y)
@@ -891,7 +902,7 @@ class CrazyflieServer(Node):
             upload_success_all = True
             for link_uri in self.uris:
                 trajectory_mem = self.swarm._cfs[link_uri].cf.mem.get_mems(
-                    MemoryElement.TYPE_TRAJ)[id]
+                    MemoryElement.TYPE_TRAJ)[0]
                 trajectory_mem.trajectory = trajectory
                 upload_result = trajectory_mem.write_data_sync()
                 if not upload_result:
@@ -905,7 +916,7 @@ class CrazyflieServer(Node):
                 return response
         else:
             trajectory_mem = self.swarm._cfs[uri].cf.mem.get_mems(
-                MemoryElement.TYPE_TRAJ)[id]
+                MemoryElement.TYPE_TRAJ)[0]
             trajectory_mem.trajectory = trajectory
             upload_result = trajectory_mem.write_data_sync()
             if not upload_result:
@@ -913,7 +924,82 @@ class CrazyflieServer(Node):
                 response.success = False
                 return response
             self.swarm._cfs[uri].cf.high_level_commander.define_trajectory(
-                id, offset, len(trajectory))
+                id, offset, len(trajectory)
+            )
+
+        return response
+
+    def _upload_bezier_trajectory_callback(self, request, response, uri="all"):
+        id = request.trajectory_id
+        offset = request.piece_offset
+        num_pieces = len(request.pieces)
+        total_duration = 0
+
+        self.get_logger().info(
+            "upload_trajectory(id=%d, offset=%d, num_pieces=%d)"
+            % (id, offset, num_pieces)
+        )
+
+        trajectory = []
+        start_x = request.pieces[0].bezier_control_pts_x[0]
+        start_y = request.pieces[0].bezier_control_pts_y[0]
+        start_z = request.pieces[0].bezier_control_pts_z[0]
+        start_yaw = 0.0
+        trajectory.append(CompressedStart(start_x, start_y, start_z, start_yaw))
+        for i in range(num_pieces):
+            piece = request.pieces[i]
+            duration = float(piece.duration.sec) + float(piece.duration.nanosec) / 1e9
+            p = CompressedSegment(
+                duration,
+                piece.bezier_control_pts_x[1:],
+                piece.bezier_control_pts_y[1:],
+                piece.bezier_control_pts_z[1:],
+                piece.bezier_control_pts_yaw[1:],
+            )
+            trajectory.append(p)
+            total_duration += duration
+
+        if uri == "all":
+            upload_success_all = True
+            for link_uri in self.uris:
+                trajectory_mem = self.swarm._cfs[link_uri].cf.mem.get_mems(
+                    MemoryElement.TYPE_TRAJ
+                )[0]
+                trajectory_mem.trajectory = trajectory
+                upload_result = trajectory_mem.write_data_sync()
+                if not upload_result:
+                    self.get_logger().info(
+                        f"[{self.cf_dict[uri]}] Upload bezier trajectory failed"
+                    )
+                    upload_success_all = False
+                else:
+                    self.swarm._cfs[link_uri].cf.high_level_commander.define_trajectory(
+                        id,
+                        offset,
+                        len(trajectory),
+                        type=HighLevelCommander.TRAJECTORY_TYPE_POLY4D_COMPRESSED,
+                    )
+            if upload_success_all is False:
+                response.success = False
+                return response
+        else:
+            trajectory_mem = self.swarm._cfs[uri].cf.mem.get_mems(
+                MemoryElement.TYPE_TRAJ
+            )[0]
+            trajectory_mem.trajectory = trajectory
+            upload_result = trajectory_mem.write_data_sync()
+            if not upload_result:
+                self.get_logger().info(
+                    f"[{self.cf_dict[uri]}] Upload bezier trajectory failed"
+                )
+                response.success = False
+                return response
+            self.swarm._cfs[uri].cf.high_level_commander.define_trajectory(
+                id,
+                offset,
+                len(trajectory),
+                type=HighLevelCommander.TRAJECTORY_TYPE_POLY4D_COMPRESSED,
+            )
 
         return response
 

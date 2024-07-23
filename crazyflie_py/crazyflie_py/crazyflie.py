@@ -19,9 +19,9 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from collections import defaultdict
 import copy
 
-from crazyflie_interfaces.msg import FullState, Position, Status, TrajectoryPolynomialPiece
+from crazyflie_interfaces.msg import FullState, Position, Status, TrajectoryPolynomialPiece, TrajectoryBezierPiece
 from crazyflie_interfaces.srv import Arm, GoTo, Land, \
-    NotifySetpointsStop, StartTrajectory, Takeoff, UploadTrajectory
+    NotifySetpointsStop, StartTrajectory, Takeoff, UploadTrajectory, UploadBezierTrajectory
 from geometry_msgs.msg import Point
 import numpy as np
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
@@ -32,7 +32,6 @@ import rclpy.node
 import rowan
 from std_srvs.srv import Empty
 from geometry_msgs.msg import Point, Twist
-
 from tf2_msgs.msg import TFMessage
 
 
@@ -135,6 +134,10 @@ class Crazyflie:
         self.uploadTrajectoryService = node.create_client(
             UploadTrajectory, prefix + '/upload_trajectory')
         self.uploadTrajectoryService.wait_for_service()
+        self.uploadBezierTrajectoryService = node.create_client(
+            UploadBezierTrajectory, prefix + "/upload_bezier_trajectory"
+        )
+        self.uploadBezierTrajectoryService.wait_for_service()
         self.startTrajectoryService = node.create_client(
             StartTrajectory, prefix + '/start_trajectory')
         self.startTrajectoryService.wait_for_service()
@@ -472,11 +475,38 @@ class Crazyflie:
             if future.done():
                 break
 
-    def startTrajectory(self, trajectoryId,
-                        timescale=1.0, reverse=False,
-                        relative=True, groupMask=0):
+    def uploadBezierTrajectory(self, trajectoryId, pieceOffset, trajectory):
+        """Uploads a piecewise Bézier trajectory for later execution.
+
+        See bezier_trajectory.py for more information about piecewise Bézier
+        trajectories.
+
+        Args:
+            trajectoryId (int): ID number of this trajectory.
+            pieceOffset (int):
+            trajectory (:obj:`crazyflie_py.bezier_trajectory.BezierTrajectory`): Trajectory object.
         """
-        Begin executing a previously uploaded trajectory.
+        pieces = []
+
+        for curve in trajectory.curve_list:
+            piece = TrajectoryBezierPiece()
+            piece.duration = rclpy.duration.Duration(seconds=curve.duration).to_msg()
+            piece.bezier_control_pts_x = curve.ctrl_pts_x.tolist()
+            piece.bezier_control_pts_y = curve.ctrl_pts_y.tolist()
+            piece.bezier_control_pts_z = curve.ctrl_pts_z.tolist()
+            piece.bezier_control_pts_yaw = curve.ctrl_pts_yaw.tolist()
+            pieces.append(piece)
+
+        req = UploadBezierTrajectory.Request()
+        req.trajectory_id = trajectoryId
+        req.piece_offset = pieceOffset
+        req.pieces = pieces
+        self.uploadBezierTrajectoryService.call_async(req)
+
+    def startTrajectory(
+        self, trajectoryId, timescale=1.0, reverse=False, relative=True, groupMask=0
+    ):
+        """Begins executing a previously uploaded trajectory.
 
         Asynchronous command; returns immediately.
 
@@ -879,8 +909,7 @@ class CrazyflieServer(rclpy.node.Node):
         self.cmdFullStatePublisher = self.create_publisher(
             FullState, 'all/cmd_full_state', 1)
         self.cmdFullStateMsg = FullState()
-        self.cmdFullStateMsg.header.frame_id = '/world'
-
+        self.cmdFullStateMsg.header.frame_id = "/world"
         cfnames = []
         for srv_name, srv_types in self.get_service_names_and_types():
             if 'crazyflie_interfaces/srv/StartTrajectory' in srv_types:
