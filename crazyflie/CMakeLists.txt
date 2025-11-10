@@ -30,12 +30,12 @@ else()
 endif()
 
 # add dependencies
-add_subdirectory(deps/crazyflie_tools)
+add_subdirectory(deps/crazyflie_cpp)
 # add_subdirectory(externalDependencies/libmotioncapture)
 
 include_directories(
-  deps/crazyflie_tools/crazyflie_cpp/include
-  deps/crazyflie_tools/crazyflie_cpp/crazyflie-link-cpp/include
+  deps/crazyflie_cpp/include
+  deps/crazyflie_cpp/crazyflie-link-cpp/include
 #  externalDependencies/libobjecttracker/include
 #  externalDependencies/libmotioncapture/include
   ${EIGEN3_INCLUDE_DIRS}
@@ -63,7 +63,7 @@ target_include_directories(crazyflie_ros2 PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(crazyflie_ros2
+target_link_libraries(crazyflie_ros2 PUBLIC
   crazyflie_cpp
 )
 
@@ -71,7 +71,7 @@ if("${ROS_DISTRO_VALUE}" STREQUAL "humble")
   target_compile_definitions(crazyflie_ros2 PRIVATE ROS_DISTRO_HUMBLE)
 endif()
 
-ament_target_dependencies(crazyflie_ros2
+ament_target_dependencies(crazyflie_ros2 PUBLIC
   rclcpp
   tf2_ros
   sensor_msgs
@@ -118,32 +118,33 @@ target_link_libraries(crazyflie_server_node
 # Install Library
 install(TARGETS
   crazyflie_ros2
-  EXPORT ${PROJECT_NAME}Targets
+  crazyflie_cpp
+  crazyflieLinkCpp
+  EXPORT crazyflie_ros2Targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
 )
 
+ament_export_targets(crazyflie_ros2Targets HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  rclcpp
+  tf2_ros
+  sensor_msgs
+  nav_msgs
+  std_srvs
+  crazyflie_interfaces
+  motion_capture_tracking_interfaces
+  rcl_interfaces
+)
+
 # Install C++ executables
 install(TARGETS
-  # crazyflie_tools
-  comCheck
-  scan
-  listParams
-  listLogVariables
-  listMemories
-  reboot
-  battery
-  version
-  console
-  log
-  setParam
-  downloadUSDLogfile
-  #
   teleop
   crazyflie_server_node
-  DESTINATION lib/${PROJECT_NAME})
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Install Python executables
 install(PROGRAMS
@@ -167,6 +168,16 @@ install(DIRECTORY
 )
 
 install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(
+  DIRECTORY deps/crazyflie_cpp/include/crazyflie_cpp
+  DESTINATION include
+)
+
+install(
+  DIRECTORY deps/crazyflie_cpp/crazyflie-link-cpp/include/crazyflieLinkCpp
   DESTINATION include
 )
 
