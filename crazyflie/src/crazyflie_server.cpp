@@ -172,8 +172,7 @@ CrazyflieServer::CrazyflieServer() : Node("crazyflie_server"), logger_(get_logge
     sensor_data_qos.keep_last(1);
     sensor_data_qos.deadline(rclcpp::Duration(0 /*s*/, 1e9 / poses_qos_deadline /*ns*/));
     sub_poses_ = this->create_subscription<NamedPoseArray>(
-        "poses", sensor_data_qos, std::bind(&CrazyflieServer::posesChanged, this, _1), sub_opt_mocap);
-
+      "poses", sensor_data_qos, std::bind(&CrazyflieServer::posesChanged, this, _1), sub_opt_mocap);
     // support for all.params
 
     // Create a parameter subscriber that can be used to monitor parameter changes
@@ -201,7 +200,8 @@ CrazyflieServer::CrazyflieServer() : Node("crazyflie_server"), logger_(get_logge
         get_service_qos(), callback_group_all_srv_);
     service_arm_ = this->create_service<Arm>("all/arm", std::bind(&CrazyflieServer::arm, this, _1, _2),
                                              get_service_qos(), callback_group_all_srv_);
-
+    service_reboot_ = this->create_service<Empty>("all/reboot", std::bind(&CrazyflieServer::reboot, this, _1, _2),
+                                                  get_service_qos(), callback_group_all_srv_);
     // This is the last service to announce and can be used to check if the server is fully available
     service_emergency_ =
         this->create_service<Empty>("all/emergency", std::bind(&CrazyflieServer::emergency, this, _1, _2),
@@ -218,10 +218,23 @@ void CrazyflieServer::emergency(const std::shared_ptr<Empty::Request> request,
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
     }
-}
-
-void CrazyflieServer::start_trajectory(const std::shared_ptr<StartTrajectory::Request> request,
-                                       std::shared_ptr<StartTrajectory::Response> response) {
+  }
+  void reboot(const std::shared_ptr<Empty::Request> request,
+            std::shared_ptr<Empty::Response> response)
+  {
+    RCLCPP_INFO(logger_, "[all] reboot()");
+    for (int i = 0; i < broadcasts_num_repeats_; ++i)
+    {
+      for (auto &bc : broadcaster_) {
+        auto &cfbc = bc.second;
+        //cfbc->reboot();
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
+    }
+  }
+  void start_trajectory(const std::shared_ptr<StartTrajectory::Request> request,
+            std::shared_ptr<StartTrajectory::Response> response)
+  {
     RCLCPP_INFO(logger_, "[all] start_trajectory(id=%d, timescale=%f, reversed=%d, group_mask=%d)",
                 request->trajectory_id, request->timescale, request->reversed, request->group_mask);
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
