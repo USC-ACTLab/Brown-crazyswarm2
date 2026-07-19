@@ -36,7 +36,6 @@
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/empty.hpp"
 
-
 namespace {
 using std::placeholders::_1;
 using std::placeholders::_2;
