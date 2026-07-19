@@ -26,6 +26,9 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "rclcpp/node_interfaces/get_node_parameters_interface.hpp"
+#include "rclcpp/node_interfaces/get_node_topics_interface.hpp"
+#include "rclcpp/node_interfaces/node_interfaces.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -43,16 +46,18 @@ using std::placeholders::_2;
 }  // namespace
 
 namespace crazyswarm2 {
-CrazyflieROS::CrazyflieROS(const std::string &link_uri, const std::string &cf_type, const std::string &name,
-                           rclcpp::Node *node, rclcpp::CallbackGroup::SharedPtr callback_group_cf_cmd,
-                           rclcpp::CallbackGroup::SharedPtr callback_group_cf_srv, const CrazyflieBroadcaster *cfbc,
+CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_type, const std::string& name,
+                           rclcpp::Node* node, rclcpp::CallbackGroup::SharedPtr callback_group_cf_cmd,
+                           rclcpp::CallbackGroup::SharedPtr callback_group_cf_srv, const CrazyflieBroadcaster* cfbc,
                            bool enable_parameters)
     : logger_(node->get_logger()),
       cf_logger_(logger_, "[" + name + "]"),
       cf_(link_uri, cf_logger_, std::bind(&CrazyflieROS::on_console, this, std::placeholders::_1)),
       name_(name),
       node_(node),
-      tf_broadcaster_(node),
+      tf_broadcaster_(rclcpp::node_interfaces::NodeInterfaces<rclcpp::node_interfaces::NodeParametersInterface,
+                                                              rclcpp::node_interfaces::NodeTopicsInterface>(
+          node->get_node_parameters_interface(), node->get_node_topics_interface())),
       last_on_latency_(std::chrono::steady_clock::now()),
       cfbc_(cfbc) {
     auto sub_opt_cf_cmd = rclcpp::SubscriptionOptions();
