@@ -80,6 +80,7 @@ This RVIZ2 visualization can be done for the default topics:
 * 'pose': '/cf231/pose/' Transforms and Pose
 * 'odom': '/cf231/odom/' Odometry
 * 'scan': '/cf231/scan' Scan
+* 'imu': '/cf231/imu' ``sensor_msgs/Imu`` (accelerometer + gyro; no orientation)
 
 Here you can see an example of 5 crazyflies with the Pose default topic enabled, while taking off and landing
 
