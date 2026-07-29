@@ -37,10 +37,13 @@ import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import Imu, LaserScan
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 from tf2_ros import TransformBroadcaster
+
+
+GRAVITY = 9.80665
 
 
 def quaternion_from_euler(roll, pitch, yaw):
@@ -113,6 +116,7 @@ class CrazyflieServer(Node):
             'scan': LaserScan,
             'odom': Odometry,
             'status': Status,
+            'imu': Imu,
         }
         self.default_log_vars = {
             'pose': [
@@ -139,12 +143,21 @@ class CrazyflieServer(Node):
                 'gyro.y',
             ],
             'status': ['supervisor.info', 'pm.vbatMV', 'pm.state', 'radio.rssi'],
+            'imu': [
+                'acc.x',
+                'acc.y',
+                'acc.z',
+                'gyro.x',
+                'gyro.y',
+                'gyro.z',
+            ],
         }
         self.default_log_fnc = {
             'pose': self._log_pose_data_callback,
             'scan': self._log_scan_data_callback,
             'odom': self._log_odom_data_callback,
             'status': self._log_status_data_callback,
+            'imu': self._log_imu_data_callback,
         }
 
         world_tf_name = 'world'
@@ -705,6 +718,31 @@ class CrazyflieServer(Node):
             self.tfbr.sendTransform(t_base)
         except Exception:
             self.get_logger().info('Could not publish pose tf')
+
+    def _log_imu_data_callback(self, timestamp, data, logconf, uri):
+        """Publish IMU data retrieved from the Crazyflie."""
+        cf_name = self.cf_dict[uri]
+
+        msg = Imu()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = cf_name
+
+        # firmware: acc in g, gyro in deg/s -> SI (m/s^2, rad/s)
+        msg.linear_acceleration.x = data.get('acc.x') * GRAVITY
+        msg.linear_acceleration.y = data.get('acc.y') * GRAVITY
+        msg.linear_acceleration.z = data.get('acc.z') * GRAVITY
+        msg.angular_velocity.x = radians(data.get('gyro.x'))
+        msg.angular_velocity.y = radians(data.get('gyro.y'))
+        msg.angular_velocity.z = radians(data.get('gyro.z'))
+
+        # No orientation: this topic is raw IMU; see /pose for attitude estimate (26-byte log block)
+        msg.orientation_covariance[0] = -1.0
+
+        try:
+            self.swarm._cfs[uri].logging['imu_publisher'].publish(msg)
+        except Exception:
+            self.get_logger().info('Could not publish imu message, stopping imu log')
+            self.swarm._cfs[uri].logging['imu_log_config'].stop()
 
     def _log_odom_data_callback(self, timestamp, data, logconf, uri):
         """Publish odometry data retrieved from the Crazyflie."""

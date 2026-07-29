@@ -29,6 +29,7 @@
 #include "rclcpp/node_interfaces/get_node_parameters_interface.hpp"
 #include "rclcpp/node_interfaces/get_node_topics_interface.hpp"
 #include "rclcpp/node_interfaces/node_interfaces.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -418,6 +419,26 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
 
                     log_block_status_.reset(new LogBlock<logStatus>(&cf_, logvars, cb));
                     log_block_status_->start(uint8_t(100.0f / (float)freq));  // this is in tens of milliseconds
+                } else if (i.first.find("default_topics.imu") == 0) {
+                    int freq = log_config_map["default_topics.imu.frequency"].get<int>();
+                    RCLCPP_INFO(logger_, "[%s] Logging to /imu at %d Hz", name_.c_str(), freq);
+
+                    publisher_imu_ = node->create_publisher<sensor_msgs::msg::Imu>(name + "/imu", 10);
+
+                    std::function<void(uint32_t, const logImu*)> cb =
+                        std::bind(&CrazyflieROS::on_logging_imu, this, std::placeholders::_1, std::placeholders::_2);
+
+                    log_block_imu_.reset(new LogBlock<logImu>(&cf_,
+                                                              {
+                                                                  {"acc", "x"},
+                                                                  {"acc", "y"},
+                                                                  {"acc", "z"},
+                                                                  {"gyro", "x"},
+                                                                  {"gyro", "y"},
+                                                                  {"gyro", "z"},
+                                                              },
+                                                              cb));
+                    log_block_imu_->start(uint8_t(100.0f / (float)freq));  // this is in tens of milliseconds
                 } else if (i.first.find("custom_topics") == 0 && i.first.rfind(".vars") != std::string::npos) {
                     std::string topic_name = i.first.substr(14, i.first.size() - 14 - 5);
 
@@ -666,6 +687,29 @@ void CrazyflieROS::on_logging_pose(uint32_t time_in_ms, const logPose *data) {
         msg2.transform.rotation.z = q[2];
         msg2.transform.rotation.w = q[3];
         tf_broadcaster_.sendTransform(msg2);
+    }
+}
+
+void CrazyflieROS::on_logging_imu(uint32_t time_in_ms, const logImu* data) {
+    if (publisher_imu_) {
+        sensor_msgs::msg::Imu msg;
+        msg.header.stamp = node_->get_clock()->now();
+        msg.header.frame_id = name_;
+
+        // firmware: acc in g, gyro in deg/s -> SI (m/s^2, rad/s)
+        constexpr double gravity = 9.80665;
+        constexpr double deg2rad = M_PI / 180.0;
+        msg.linear_acceleration.x = data->ax * gravity;
+        msg.linear_acceleration.y = data->ay * gravity;
+        msg.linear_acceleration.z = data->az * gravity;
+        msg.angular_velocity.x = data->gx * deg2rad;
+        msg.angular_velocity.y = data->gy * deg2rad;
+        msg.angular_velocity.z = data->gz * deg2rad;
+
+        // No orientation: this topic is raw IMU; see /pose for attitude estimate (26-byte log block)
+        msg.orientation_covariance[0] = -1.0;
+
+        publisher_imu_->publish(msg);
     }
 }
 

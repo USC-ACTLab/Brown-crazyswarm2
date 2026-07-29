@@ -95,6 +95,10 @@ all:
         frequency: 10 # Hz
       status:
         frequency: 1 # Hz
+      # imu publishes sensor_msgs/Imu (acc + gyro, no orientation). Radio-heavy at
+      # high rates; leave commented unless needed.
+      # imu:
+      #   frequency: 50 # Hz
     #custom_topics:
     #  topic_name1:
     #    frequency: 10 # Hz

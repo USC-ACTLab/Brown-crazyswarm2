@@ -95,6 +95,8 @@ The yaml file also contain an 'all' field, in case you have parameters or loggin
             default_topics:
                 pose:
                 frequency: 10 # Hz
+                # imu:
+                #   frequency: 50 # Hz
             #custom_topics:
             #  topic_name1:
             #    frequency: 10 # Hz
@@ -110,6 +112,7 @@ The yaml file also contain an 'all' field, in case you have parameters or loggin
                 controller: 2 # 1: PID, 2: mellinger
 
 The above also contains an example of the firmware_logging field, where default topics can be enabled or custom topics based on the `existing log toc of the crazyflie <https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs//>`_.
+Default topics are ``pose``, ``scan``, ``odom``, ``status``, and ``imu`` (``sensor_msgs/Imu`` from ``acc.*`` / ``gyro.*``; orientation is not included because a firmware log block is only 26 bytes).
 Moreover, it also contains the firmware_params field, where parameters can be set at startup.
 Also see the `parameter list of the crazyflie <https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/params//>`_ for that.
 

@@ -110,6 +110,15 @@ private:
         uint16_t numRxUc;  // radio.numRxUc
     } __attribute__((packed));
 
+    struct logImu {
+        float ax;  // acc.x, g
+        float ay;  // acc.y, g
+        float az;  // acc.z, g
+        float gx;  // gyro.x, deg/s
+        float gy;  // gyro.y, deg/s
+        float gz;  // gyro.z, deg/s
+    } __attribute__((packed));
+
     void cmd_full_state_changed(const crazyflie_interfaces::msg::FullState::SharedPtr msg);
 
     void cmd_velocity_world_changed(const crazyflie_interfaces::msg::VelocityWorld::SharedPtr msg);
@@ -144,6 +153,8 @@ private:
     void on_logging_pose(uint32_t time_in_ms, const logPose *data);
 
     void on_logging_scan(uint32_t time_in_ms, const logScan *data);
+
+    void on_logging_imu(uint32_t time_in_ms, const logImu *data);
 
     void on_logging_odom(uint32_t time_in_ms, const logOdom *data);
 
