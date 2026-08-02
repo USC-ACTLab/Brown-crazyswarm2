@@ -735,7 +735,8 @@ class CrazyflieServer(Node):
         msg.angular_velocity.y = radians(data.get('gyro.y'))
         msg.angular_velocity.z = radians(data.get('gyro.z'))
 
-        # No orientation: this topic is raw IMU; see /pose for attitude estimate (26-byte log block)
+        # No orientation: this topic is raw IMU; see /pose for 
+        #   attitude estimate (26-byte log block)
         msg.orientation_covariance[0] = -1.0
 
         try:
