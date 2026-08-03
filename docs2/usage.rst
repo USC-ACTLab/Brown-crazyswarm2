@@ -95,8 +95,6 @@ The yaml file also contain an 'all' field, in case you have parameters or loggin
             default_topics:
                 pose:
                 frequency: 10 # Hz
-                # imu:
-                #   frequency: 50 # Hz
             #custom_topics:
             #  topic_name1:
             #    frequency: 10 # Hz
