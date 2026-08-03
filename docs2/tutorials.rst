@@ -77,7 +77,7 @@ The crazyflie names should appear with their estimated position.
 
 This RVIZ2 visualization can be done for the default topics:
 
-* 'pose': '/cf231/pose/' ``geometry_msgs/PoseStamped`` and TF transforms
+* 'pose': '/cf231/pose/' ``geometry_msgs/PoseStamped``
 * 'odom': '/cf231/odom/' ``nav_msgs/Odometry``
 * 'scan': '/cf231/scan' ``sensor_msgs/LaserScan``
 * 'imu': '/cf231/imu' ``sensor_msgs/Imu``
