@@ -4,6 +4,7 @@ deck_ip: "192.168.4.1"
 deck_port: 5000
 image_width: 324
 image_height: 324
+image_encoding: "mono8" # rgba8 for AI-deck color camera module
 camera_name: crazyflie
 camera_matrix:
   rows: 3
