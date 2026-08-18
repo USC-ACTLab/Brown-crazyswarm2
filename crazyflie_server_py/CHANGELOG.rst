@@ -2,6 +2,12 @@
 Changelog for package crazyflie_server_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add default_topics.imu as sensor_msgs/Imu
+* Fix: add /all/notify_setpoints_stop service in crazyflie_server.py
+* Contributors: Alvaro Gaona, Kimberly McGuire, Wolfgang Hönig, toyomoy
+
 1.0.5 (2026-06-29)
 ------------------
 * separate crazyflie_description package
