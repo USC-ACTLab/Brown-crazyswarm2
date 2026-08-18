@@ -2,8 +2,8 @@
 Changelog for package crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2026-08-18)
+------------------
 * Fix matrix shape order and add configurable image encoding
 * Separate Crazyflie cpp server
 * Add default_topics.imu as sensor_msgs/Imu
