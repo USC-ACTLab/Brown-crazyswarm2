@@ -2,6 +2,11 @@
 Changelog for package crazyflie_sim
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Remove rowan dependency
+* Contributors: Wolfgang Hönig
+
 1.0.5 (2026-06-29)
 ------------------
 

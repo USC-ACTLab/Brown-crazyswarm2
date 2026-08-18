@@ -2,6 +2,14 @@
 Changelog for package crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix matrix shape order and add configurable image encoding
+* Separate Crazyflie cpp server
+* Add default_topics.imu as sensor_msgs/Imu
+* cpp-server: fix compiler error on rolling
+* Contributors: Alvaro Gaona, Anna, Kimberly McGuire, Wolfgang Hönig
+
 1.0.5 (2026-06-29)
 ------------------
 * fix/fixing unitialized stats count that may cause incorrect statistics warnings
