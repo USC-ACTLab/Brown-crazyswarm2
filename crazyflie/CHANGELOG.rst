@@ -2,8 +2,8 @@
 Changelog for package crazyflie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2026-08-21)
+------------------
 * Add rclpy to package.xml to fix build farm errors
 * Contributors: Kimberly McGuire
 
