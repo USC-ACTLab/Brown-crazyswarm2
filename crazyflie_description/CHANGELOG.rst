@@ -2,6 +2,9 @@
 Changelog for package crazyflie_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.6 (2026-08-18)
 ------------------
 

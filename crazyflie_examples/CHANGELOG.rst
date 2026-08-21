@@ -2,6 +2,9 @@
 Changelog for package crazyflie_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.0.6 (2026-08-18)
 ------------------
 
