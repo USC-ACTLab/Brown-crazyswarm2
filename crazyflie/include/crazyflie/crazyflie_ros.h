@@ -65,6 +65,8 @@ public:
 
     void change_parameter(const rclcpp::Parameter &p);
 
+    Crazyflie &crazyflie() {return cf_; }
+
 private:
     struct logPose {
         float x;
