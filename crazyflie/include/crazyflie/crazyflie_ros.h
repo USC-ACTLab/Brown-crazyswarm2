@@ -29,6 +29,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/empty.hpp"
@@ -48,9 +49,9 @@ public:
     using UploadTrajectory = crazyflie_interfaces::srv::UploadTrajectory;
     using Empty = std_srvs::srv::Empty;
 
-    CrazyflieROS(const std::string &link_uri, const std::string &cf_type, const std::string &name, rclcpp::Node *node,
+    CrazyflieROS(const std::string& link_uri, const std::string& cf_type, const std::string& name, rclcpp::Node* node,
                  rclcpp::CallbackGroup::SharedPtr callback_group_cf_cmd,
-                 rclcpp::CallbackGroup::SharedPtr callback_group_cf_srv, const CrazyflieBroadcaster *cfbc,
+                 rclcpp::CallbackGroup::SharedPtr callback_group_cf_srv, const CrazyflieBroadcaster* cfbc,
                  bool enable_parameters = true);
 
     void spin_once() { cf_.processAllPackets(); }
@@ -59,13 +60,13 @@ public:
 
     uint8_t id() const { return cf_.address() & 0xFF; }
 
-    const Crazyflie::ParamTocEntry *paramTocEntry(const std::string &group, const std::string &name) const;
+    const Crazyflie::ParamTocEntry* paramTocEntry(const std::string& group, const std::string& name) const;
 
-    const std::string &name() const { return name_; }
+    const std::string& name() const { return name_; }
 
-    void change_parameter(const rclcpp::Parameter &p);
+    void change_parameter(const rclcpp::Parameter& p);
 
-    Crazyflie &crazyflie() {return cf_; }
+    Crazyflie& crazyflie() { return cf_; }
 
 private:
     struct logPose {
@@ -129,7 +130,7 @@ private:
 
     void cmd_vel_legacy_changed(const geometry_msgs::msg::Twist::SharedPtr msg);
 
-    void on_console(const char *msg);
+    void on_console(const char* msg);
 
     void emergency(const std::shared_ptr<Empty::Request> request, std::shared_ptr<Empty::Response> response);
 
@@ -150,17 +151,17 @@ private:
 
     void arm(const std::shared_ptr<Arm::Request> request, std::shared_ptr<Arm::Response> response);
 
-    void on_logging_pose(uint32_t time_in_ms, const logPose *data);
+    void on_logging_pose(uint32_t time_in_ms, const logPose* data);
 
-    void on_logging_scan(uint32_t time_in_ms, const logScan *data);
+    void on_logging_scan(uint32_t time_in_ms, const logScan* data);
 
-    void on_logging_imu(uint32_t time_in_ms, const logImu *data);
+    void on_logging_imu(uint32_t time_in_ms, const logImu* data);
 
-    void on_logging_odom(uint32_t time_in_ms, const logOdom *data);
+    void on_logging_odom(uint32_t time_in_ms, const logOdom* data);
 
-    void on_logging_status(uint32_t time_in_ms, const logStatus *data);
+    void on_logging_status(uint32_t time_in_ms, const logStatus* data);
 
-    void on_logging_custom(uint32_t time_in_ms, const std::vector<float> *values, void *userData);
+    void on_logging_custom(uint32_t time_in_ms, const std::vector<float>* values, void* userData);
 
     void on_link_statistics_timer();
 
@@ -173,7 +174,7 @@ private:
     std::string message_buffer_;
     std::string name_;
 
-    rclcpp::Node *node_;
+    rclcpp::Node* node_;
     tf2_ros::TransformBroadcaster tf_broadcaster_;
 
     rclcpp::Service<Empty>::SharedPtr service_emergency_;
@@ -208,11 +209,15 @@ private:
     std::unique_ptr<LogBlock<logStatus>> log_block_status_;
     bool status_has_radio_stats_;
     rclcpp::Publisher<crazyflie_interfaces::msg::Status>::SharedPtr publisher_status_;
+
+    std::unique_ptr<LogBlock<logImu>> log_block_imu_;
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr publisher_imu_;
     uint16_t previous_numRxBc;
     uint16_t previous_numRxUc;
     bitcraze::crazyflieLinkCpp::Connection::Statistics previous_stats_unicast_;
     bitcraze::crazyflieLinkCpp::Connection::Statistics previous_stats_broadcast_;
-    const CrazyflieBroadcaster *cfbc_;
+    bool first_status_msg_ = true;
+    const CrazyflieBroadcaster* cfbc_;
 
     std::list<std::unique_ptr<LogBlockGeneric>> log_blocks_generic_;
     std::list<rclcpp::Publisher<crazyflie_interfaces::msg::LogDataGeneric>::SharedPtr> publishers_generic_;

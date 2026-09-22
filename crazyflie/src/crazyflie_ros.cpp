@@ -60,7 +60,13 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
                                                               rclcpp::node_interfaces::NodeTopicsInterface>(
           node->get_node_parameters_interface(), node->get_node_topics_interface())),
       last_on_latency_(std::chrono::steady_clock::now()),
-      cfbc_(cfbc) {
+      cfbc_(cfbc),
+      previous_numRxBc(0),
+      previous_numRxUc(0),
+      previous_stats_unicast_(),
+      previous_stats_broadcast_(),
+      last_latency_in_ms_(0),
+      first_status_msg_(true) {
     auto sub_opt_cf_cmd = rclcpp::SubscriptionOptions();
     sub_opt_cf_cmd.callback_group = callback_group_cf_cmd;
 
@@ -146,12 +152,12 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
     cf_.logReset();
 
     auto node_parameters_iface = node->get_node_parameters_interface();
-    const std::map<std::string, rclcpp::ParameterValue> &parameter_overrides =
+    const std::map<std::string, rclcpp::ParameterValue>& parameter_overrides =
         node_parameters_iface->get_parameter_overrides();
 
     // declares lambda, to be used as local function, which re-declares
     // specified parameters for other nodes to query
-    auto declare_param = [&parameter_overrides, node](const std::string &param) {
+    auto declare_param = [&parameter_overrides, node](const std::string& param) {
         // rclcpp::ParameterValue value(parameter_overridesparam]);
         node->declare_parameter(param, parameter_overrides.at(param));
     };
@@ -159,9 +165,9 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
     declare_param("robots." + name + ".initial_position");
 
     // declares a lambda, to be used as local function
-    auto update_map = [&parameter_overrides](std::map<std::string, rclcpp::ParameterValue> &map,
-                                             const std::string &pattern) {
-        for (const auto &i : parameter_overrides) {
+    auto update_map = [&parameter_overrides](std::map<std::string, rclcpp::ParameterValue>& map,
+                                             const std::string& pattern) {
+        for (const auto& i : parameter_overrides) {
             if (i.first.find(pattern) == 0) {
                 size_t start = pattern.size() + 1;
                 const auto group_and_name = i.first.substr(start);
@@ -170,8 +176,8 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
         }
     };
 
-    auto update_value = [&parameter_overrides](rclcpp::ParameterValue &value, const std::string &pattern) {
-        for (const auto &i : parameter_overrides) {
+    auto update_value = [&parameter_overrides](rclcpp::ParameterValue& value, const std::string& pattern) {
+        for (const auto& i : parameter_overrides) {
             if (i.first.find(pattern) == 0) {
                 value = i.second;
             }
@@ -276,7 +282,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
         update_map(set_param_map, "robots." + name_ + ".firmware_params");
 
         // Update parameters
-        for (const auto &i : set_param_map) {
+        for (const auto& i : set_param_map) {
             std::string paramName = name + ".params." + std::regex_replace(i.first, std::regex("\\."), ".");
             change_parameter(rclcpp::Parameter(paramName, i.second));
         }
@@ -324,7 +330,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
         if (logging_enabled) {
             cf_.requestLogToc(/*forceNoCache*/);
 
-            for (const auto &i : log_config_map) {
+            for (const auto& i : log_config_map) {
                 // check if any of the default topics are enabled
                 if (i.first.find("default_topics.pose") == 0) {
                     int freq = log_config_map["default_topics.pose.frequency"].get<int>();
@@ -332,7 +338,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
 
                     publisher_pose_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(name + "/pose", 10);
 
-                    std::function<void(uint32_t, const logPose *)> cb =
+                    std::function<void(uint32_t, const logPose*)> cb =
                         std::bind(&CrazyflieROS::on_logging_pose, this, std::placeholders::_1, std::placeholders::_2);
 
                     log_block_pose_.reset(new LogBlock<logPose>(&cf_,
@@ -348,7 +354,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
 
                     publisher_scan_ = node->create_publisher<sensor_msgs::msg::LaserScan>(name + "/scan", 10);
 
-                    std::function<void(uint32_t, const logScan *)> cb =
+                    std::function<void(uint32_t, const logScan*)> cb =
                         std::bind(&CrazyflieROS::on_logging_scan, this, std::placeholders::_1, std::placeholders::_2);
 
                     log_block_scan_.reset(new LogBlock<logScan>(
@@ -360,7 +366,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
 
                     publisher_odom_ = node->create_publisher<nav_msgs::msg::Odometry>(name + "/odom", 10);
 
-                    std::function<void(uint32_t, const logOdom *)> cb =
+                    std::function<void(uint32_t, const logOdom*)> cb =
                         std::bind(&CrazyflieROS::on_logging_odom, this, std::placeholders::_1, std::placeholders::_2);
 
                     log_block_odom_.reset(new LogBlock<logOdom>(&cf_,
@@ -384,7 +390,7 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
 
                     publisher_status_ = node->create_publisher<crazyflie_interfaces::msg::Status>(name + "/status", 10);
 
-                    std::function<void(uint32_t, const logStatus *)> cb =
+                    std::function<void(uint32_t, const logStatus*)> cb =
                         std::bind(&CrazyflieROS::on_logging_status, this, std::placeholders::_1, std::placeholders::_2);
 
                     std::list<std::pair<std::string, std::string>> logvars({// general status
@@ -450,12 +456,12 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
                     publishers_generic_.emplace_back(
                         node->create_publisher<crazyflie_interfaces::msg::LogDataGeneric>(name + "/" + topic_name, 10));
 
-                    std::function<void(uint32_t, const std::vector<float> *, void *userData)> cb =
+                    std::function<void(uint32_t, const std::vector<float>*, void* userData)> cb =
                         std::bind(&CrazyflieROS::on_logging_custom, this, std::placeholders::_1, std::placeholders::_2,
                                   std::placeholders::_3);
 
                     log_blocks_generic_.emplace_back(
-                        new LogBlockGeneric(&cf_, vars, (void *)&publishers_generic_.back(), cb));
+                        new LogBlockGeneric(&cf_, vars, (void*)&publishers_generic_.back(), cb));
                     log_blocks_generic_.back()->start(
                         uint8_t(100.0f / (float)freq));  // this is in tens of milliseconds
                 }
@@ -467,11 +473,11 @@ CrazyflieROS::CrazyflieROS(const std::string& link_uri, const std::string& cf_ty
     cf_.requestMemoryToc();
 }
 
-const Crazyflie::ParamTocEntry *CrazyflieROS::paramTocEntry(const std::string &group, const std::string &name) const {
+const Crazyflie::ParamTocEntry* CrazyflieROS::paramTocEntry(const std::string& group, const std::string& name) const {
     return cf_.getParamTocEntry(group, name);
 }
 
-void CrazyflieROS::change_parameter(const rclcpp::Parameter &p) {
+void CrazyflieROS::change_parameter(const rclcpp::Parameter& p) {
     std::string prefix = name_ + ".params.";
     if (p.get_name().find(prefix) != 0) {
         RCLCPP_ERROR(logger_, "[%s] Incorrect parameter update request for param \"%s\"", name_.c_str(),
@@ -574,7 +580,7 @@ void CrazyflieROS::cmd_vel_legacy_changed(const geometry_msgs::msg::Twist::Share
     cf_.sendSetpoint(roll, pitch, yawrate, thrust);
 }
 
-void CrazyflieROS::on_console(const char *msg) {
+void CrazyflieROS::on_console(const char* msg) {
     message_buffer_ += msg;
     size_t pos = message_buffer_.find('\n');
     if (pos != std::string::npos) {
@@ -656,7 +662,7 @@ void CrazyflieROS::arm(const std::shared_ptr<Arm::Request> request, std::shared_
     cf_.sendArmingRequest(request->arm);
 }
 
-void CrazyflieROS::on_logging_pose(uint32_t time_in_ms, const logPose *data) {
+void CrazyflieROS::on_logging_pose(uint32_t time_in_ms, const logPose* data) {
     if (publisher_pose_) {
         geometry_msgs::msg::PoseStamped msg;
         msg.header.stamp = node_->get_clock()->now();
@@ -713,7 +719,7 @@ void CrazyflieROS::on_logging_imu(uint32_t time_in_ms, const logImu* data) {
     }
 }
 
-void CrazyflieROS::on_logging_scan(uint32_t time_in_ms, const logScan *data) {
+void CrazyflieROS::on_logging_scan(uint32_t time_in_ms, const logScan* data) {
     if (publisher_scan_) {
         const float max_range = 3.49;
         float front_range = data->front / 1000.0f;
@@ -742,7 +748,7 @@ void CrazyflieROS::on_logging_scan(uint32_t time_in_ms, const logScan *data) {
     }
 }
 
-void CrazyflieROS::on_logging_odom(uint32_t time_in_ms, const logOdom *data) {
+void CrazyflieROS::on_logging_odom(uint32_t time_in_ms, const logOdom* data) {
     if (publisher_odom_) {
         nav_msgs::msg::Odometry msg;
         msg.header.stamp = node_->get_clock()->now();
@@ -769,7 +775,7 @@ void CrazyflieROS::on_logging_odom(uint32_t time_in_ms, const logOdom *data) {
     }
 }
 
-void CrazyflieROS::on_logging_status(uint32_t time_in_ms, const logStatus *data) {
+void CrazyflieROS::on_logging_status(uint32_t time_in_ms, const logStatus* data) {
     if (publisher_status_) {
         crazyflie_interfaces::msg::Status msg;
         msg.header.stamp = node_->get_clock()->now();
@@ -779,6 +785,14 @@ void CrazyflieROS::on_logging_status(uint32_t time_in_ms, const logStatus *data)
         msg.pm_state = data->pmState;
         msg.rssi = data->rssi;
         if (status_has_radio_stats_) {
+            if (first_status_msg_) {
+                previous_numRxBc = data->numRxBc;
+                previous_numRxUc = data->numRxUc;
+                previous_stats_unicast_ = cf_.connectionStats();
+                previous_stats_broadcast_ = cfbc_->connectionStats();
+                first_status_msg_ = false;
+                return;
+            }
             int32_t deltaRxBc = data->numRxBc - previous_numRxBc;
             int32_t deltaRxUc = data->numRxUc - previous_numRxUc;
             // handle overflow
@@ -842,8 +856,8 @@ void CrazyflieROS::on_logging_status(uint32_t time_in_ms, const logStatus *data)
     }
 }
 
-void CrazyflieROS::on_logging_custom(uint32_t time_in_ms, const std::vector<float> *values, void *userData) {
-    auto pub = reinterpret_cast<rclcpp::Publisher<crazyflie_interfaces::msg::LogDataGeneric>::SharedPtr *>(userData);
+void CrazyflieROS::on_logging_custom(uint32_t time_in_ms, const std::vector<float>* values, void* userData) {
+    auto pub = reinterpret_cast<rclcpp::Publisher<crazyflie_interfaces::msg::LogDataGeneric>::SharedPtr*>(userData);
 
     crazyflie_interfaces::msg::LogDataGeneric msg;
     msg.header.stamp = node_->get_clock()->now();
