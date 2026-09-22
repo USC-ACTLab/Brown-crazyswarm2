@@ -40,10 +40,10 @@ namespace {
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-std::set<std::string> extract_names(const std::map<std::string, rclcpp::ParameterValue> &parameter_overrides,
-                                    const std::string &pattern) {
+std::set<std::string> extract_names(const std::map<std::string, rclcpp::ParameterValue>& parameter_overrides,
+                                    const std::string& pattern) {
     std::set<std::string> result;
-    for (const auto &i : parameter_overrides) {
+    for (const auto& i : parameter_overrides) {
         if (i.first.find(pattern) == 0) {
             size_t start = pattern.size() + 1;
             size_t end = i.first.find(".", start);
@@ -118,11 +118,11 @@ CrazyflieServer::CrazyflieServer() : Node("crazyflie_server"), logger_(get_logge
 
     // load crazyflies from params
     auto node_parameters_iface = this->get_node_parameters_interface();
-    const std::map<std::string, rclcpp::ParameterValue> &parameter_overrides =
+    const std::map<std::string, rclcpp::ParameterValue>& parameter_overrides =
         node_parameters_iface->get_parameter_overrides();
 
     auto cf_names = extract_names(parameter_overrides, "robots");
-    for (const auto &name : cf_names) {
+    for (const auto& name : cf_names) {
         bool enabled = parameter_overrides.at("robots." + name + ".enabled").get<bool>();
         if (enabled) {
             // Lookup type
@@ -171,7 +171,7 @@ CrazyflieServer::CrazyflieServer() : Node("crazyflie_server"), logger_(get_logge
     sensor_data_qos.keep_last(1);
     sensor_data_qos.deadline(rclcpp::Duration(0 /*s*/, 1e9 / poses_qos_deadline /*ns*/));
     sub_poses_ = this->create_subscription<NamedPoseArray>(
-      "poses", sensor_data_qos, std::bind(&CrazyflieServer::posesChanged, this, _1), sub_opt_mocap);
+        "poses", sensor_data_qos, std::bind(&CrazyflieServer::posesChanged, this, _1), sub_opt_mocap);
 
     // support for all.params
 
@@ -211,22 +211,21 @@ void CrazyflieServer::emergency(const std::shared_ptr<Empty::Request> request,
                                 std::shared_ptr<Empty::Response> response) {
     RCLCPP_INFO(logger_, "[all] emergency()");
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->emergencyStop();
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
     }
-  }
+}
 
-  void start_trajectory(const std::shared_ptr<StartTrajectory::Request> request,
-            std::shared_ptr<StartTrajectory::Response> response)
-  {
+void CrazyflieServer::start_trajectory(const std::shared_ptr<StartTrajectory::Request> request,
+                                       std::shared_ptr<StartTrajectory::Response> response) {
     RCLCPP_INFO(logger_, "[all] start_trajectory(id=%d, timescale=%f, reversed=%d, group_mask=%d)",
                 request->trajectory_id, request->timescale, request->reversed, request->group_mask);
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->startTrajectory(request->trajectory_id, request->timescale, request->reversed, request->group_mask);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
@@ -238,8 +237,8 @@ void CrazyflieServer::takeoff(const std::shared_ptr<Takeoff::Request> request,
     RCLCPP_INFO(logger_, "[all] takeoff(height=%f m, duration=%f s, group_mask=%d)", request->height,
                 rclcpp::Duration(request->duration).seconds(), request->group_mask);
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->takeoff(request->height, rclcpp::Duration(request->duration).seconds(), request->group_mask);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
@@ -250,8 +249,8 @@ void CrazyflieServer::land(const std::shared_ptr<Land::Request> request, std::sh
     RCLCPP_INFO(logger_, "[all] land(height=%f m, duration=%f s, group_mask=%d)", request->height,
                 rclcpp::Duration(request->duration).seconds(), request->group_mask);
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->land(request->height, rclcpp::Duration(request->duration).seconds(), request->group_mask);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
@@ -263,8 +262,8 @@ void CrazyflieServer::go_to(const std::shared_ptr<GoTo::Request> request, std::s
                 request->goal.y, request->goal.z, request->yaw, rclcpp::Duration(request->duration).seconds(),
                 request->group_mask);
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->goTo(request->goal.x, request->goal.y, request->goal.z, request->yaw,
                        rclcpp::Duration(request->duration).seconds(), request->group_mask);
         }
@@ -278,8 +277,8 @@ void CrazyflieServer::notify_setpoints_stop(const std::shared_ptr<NotifySetpoint
                 request->remain_valid_millisecs, request->group_mask);
 
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->notifySetpointsStop(request->remain_valid_millisecs);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
@@ -290,8 +289,8 @@ void CrazyflieServer::arm(const std::shared_ptr<Arm::Request> request, std::shar
     RCLCPP_INFO(logger_, "[all] arm(%d)", request->arm);
 
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->sendArmingRequest(request->arm);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
@@ -317,8 +316,8 @@ void CrazyflieServer::cmd_full_state_changed(const crazyflie_interfaces::msg::Fu
     float pitchRate = msg->twist.angular.y;
     float yawRate = msg->twist.angular.z;
 
-    for (auto &bc : broadcaster_) {
-        auto &cfbc = bc.second;
+    for (auto& bc : broadcaster_) {
+        auto& cfbc = bc.second;
         cfbc->sendFullStateSetpoint(x, y, z, vx, vy, vz, ax, ay, az, qx, qy, qz, qw, rollRate, pitchRate, yawRate);
     }
 }
@@ -333,7 +332,7 @@ void CrazyflieServer::posesChanged(const NamedPoseArray::SharedPtr msg) {
     std::vector<CrazyflieBroadcaster::externalPosition> data_position;
     std::vector<CrazyflieBroadcaster::externalPose> data_pose;
 
-    for (const auto &pose : msg->poses) {
+    for (const auto& pose : msg->poses) {
         const auto iter = name_to_id_.find(pose.name);
         if (iter != name_to_id_.end()) {
             uint8_t id = iter->second;
@@ -351,25 +350,25 @@ void CrazyflieServer::posesChanged(const NamedPoseArray::SharedPtr msg) {
 
     // send position only updates to the swarm
     if (data_position.size() > 0) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->sendExternalPositions(data_position);
         }
     }
 
     // send pose only updates to the swarm
     if (data_pose.size() > 0) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->sendExternalPoses(data_pose);
         }
     }
 }
 
-void CrazyflieServer::on_parameter_event(const rcl_interfaces::msg::ParameterEvent &event) {
+void CrazyflieServer::on_parameter_event(const rcl_interfaces::msg::ParameterEvent& event) {
     if (event.node == "/crazyflie_server") {
         auto params = param_subscriber_->get_parameters_from_event(event);
-        for (auto &p : params) {
+        for (auto& p : params) {
             size_t params_pos = p.get_name().find(".params.");
             if (params_pos == std::string::npos) {
                 continue;
@@ -385,7 +384,7 @@ void CrazyflieServer::on_parameter_event(const rcl_interfaces::msg::ParameterEve
                             p.value_to_string().c_str());
 
                 Crazyflie::ParamType paramType;
-                for (auto &cf : crazyflies_) {
+                for (auto& cf : crazyflies_) {
                     const auto entry = cf.second->paramTocEntry(group, name);
                     if (entry) {
                         switch (entry->type) {
@@ -470,8 +469,8 @@ void CrazyflieServer::on_watchdog_timer() {
         msg.stats.resize(broadcaster_.size());
 
         size_t i = 0;
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
 
             auto stats = cfbc->connectionStatsDelta();
 
@@ -488,17 +487,17 @@ void CrazyflieServer::on_watchdog_timer() {
 }
 
 template <class T>
-void CrazyflieServer::broadcast_set_param(const std::string &group, const std::string &name, const T &value) {
+void CrazyflieServer::broadcast_set_param(const std::string& group, const std::string& name, const T& value) {
     for (int i = 0; i < broadcasts_num_repeats_; ++i) {
-        for (auto &bc : broadcaster_) {
-            auto &cfbc = bc.second;
+        for (auto& bc : broadcaster_) {
+            auto& cfbc = bc.second;
             cfbc->setParam<T>(group.c_str(), name.c_str(), value);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(broadcasts_delay_between_repeats_ms_));
     }
 }
 
-void CrazyflieServer::update_name_to_id_map(const std::string &name, uint8_t id) {
+void CrazyflieServer::update_name_to_id_map(const std::string& name, uint8_t id) {
     const auto iter = name_to_id_.find(name);
     if (iter != name_to_id_.end()) {
         RCLCPP_WARN(logger_, "[all] At least two objects with the same id (%d, %s, %s)", id, name.c_str(),
